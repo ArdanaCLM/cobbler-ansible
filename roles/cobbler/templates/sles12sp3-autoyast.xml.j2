@@ -38,6 +38,7 @@
       <package>gcc</package>
       <package>gdisk</package>
       <package>gptfdisk</package>
+      <package>kernel-firmware</package>
       <package>kexec-tools</package>
       <package>man</package>
       <package>openssh</package>
@@ -117,7 +118,6 @@
         <filename>autoyast-init-scripts-0.sh</filename>
         <source><![CDATA[
             systemctl enable sshd.service
-            systemctl start sshd.service
             systemctl enable kdump rsyslog
         ]]></source>
       </script>
