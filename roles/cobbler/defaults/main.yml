@@ -33,9 +33,9 @@ remote_distros:
       kernel: linux
     }
   - {
-      name: sles12sp2,
+      name: sles12sp3,
       arch: x86_64,
-      kickstart: sles12sp2-autoyast.xml,
+      kickstart: sles12sp3-autoyast.xml,
       managed_by: sles
     }
   - {
@@ -47,7 +47,7 @@ remote_distros:
 
 rhel_profile_name: 'rhel72'
 
-sles_profile_name: 'sles12sp2'
+sles_profile_name: 'sles12sp3'
 
 rhel_iso_location: "/home/stack/rhel7.iso"
 

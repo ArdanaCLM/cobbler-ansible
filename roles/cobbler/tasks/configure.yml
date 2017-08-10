@@ -166,3 +166,30 @@
                 },
   with_items: distro_signatures_files
   when:  _sles_profile_exist_result.rc != 0
+
+- name: cobbler | configure | Adding sles12sp3 into distro_signatures.json
+  sudo: yes
+  lineinfile:
+    dest: "{{ item }}"
+    state: present
+    regexp: '^"sles12": {'
+    insertbefore: '"sles12":'
+    line: >
+                "sles12sp3": {
+                   "signatures":["suse"],
+                   "version_file":"(sles|SLES-for-VMware)-release-12.3-(.*).rpm",
+                   "version_file_regex":null,
+                   "kernel_arch":"kernel-(.*)\\\\.rpm",
+                   "kernel_arch_regex":null,
+                   "supported_arches":["i386","i586","x86_64","ppc64"],
+                   "supported_repo_breeds":["yum"],
+                   "kernel_file":"linux[64.gz]?",
+                   "initrd_file":"initrd[64]?",
+                   "isolinux_ok":false,
+                   "default_kickstart":"/var/lib/cobbler/kickstarts/sample_autoyast.xml",
+                   "kernel_options":"install=$tree",
+                   "kernel_options_post":"",
+                   "boot_files":[]
+                },
+  with_items: distro_signatures_files
+  when:  _sles_profile_exist_result.rc != 0

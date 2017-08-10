@@ -29,8 +29,8 @@
 - name: cobbler | populate-sles | Install SLES kickstart
   become: yes
   template:
-    src: "sles12sp2-autoyast.xml.j2"
-    dest: "/var/lib/cobbler/kickstarts/sles12sp2-autoyast.xml"
+    src: "sles12sp3-autoyast.xml.j2"
+    dest: "/var/lib/cobbler/kickstarts/sles12sp3-autoyast.xml"
     owner: "root"
     group: "root"
     mode: 0644
@@ -59,7 +59,7 @@
     cobbler import
     --path {{ _mount_tmpdir.stdout }}
     --name {{ sles_profile_name }}
-    --kickstart /var/lib/cobbler/kickstarts/sles12sp2-autoyast.xml
+    --kickstart /var/lib/cobbler/kickstarts/sles12sp3-autoyast.xml
   when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Umount ISO
