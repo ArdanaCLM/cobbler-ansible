@@ -15,14 +15,37 @@
 # under the License.
 #
 ---
+- name: cobbler | configure | Set vars dependent on target OS
+  include_vars: "{{ ansible_os_family.split(' ')[0] | lower | replace('open','') }}.yml"
 
-- name: cobbler | configure | Adding cobbler apache configuration
+# Cobbler deb package installs conf file into wrong folder /etc/apache2/conf.d
+- name: cobbler | configure | Debian - symlink cobbler apache configuration
   become: yes
-  copy: src=/etc/apache2/conf.d/cobbler.conf dest=/etc/apache2/conf-available/
+  file:
+    src: /etc/apache2/conf.d/cobbler.conf
+    dest: /etc/apache2/conf-available/cobbler.conf
+    state: link
+  when: not cobbler_is_sles
 
-- name: cobbler | configure | Adding cobbler configuration
+- name: cobbler | configure | Debian - enable cobbler apache configuration
   become: yes
-  template: src=cobbler.conf dest=/etc/apache2/conf-available/cobbler.conf
+  command: a2enconf cobbler
+  when: not cobbler_is_sles
+
+- name: cobbler | configure | Suse - create apache configuration for /srv
+  become: yes
+  template: src=srv.conf.j2 dest=/etc/apache2/conf.d/srv.conf
+  when: cobbler_is_sles
+
+- name: cobbler | configure | Debian - create apache configuration for /srv
+  become: yes
+  template: src=srv.conf.j2 dest=/etc/apache2/conf-available/srv.conf
+  when: not cobbler_is_sles
+
+- name: cobbler | configure | Debian - enable apache configuration for /srv
+  become: yes
+  command: a2enconf srv
+  when: not cobbler_is_sles
 
 - name: cobbler | configure | set default passwd
   set_fact: cobbler_default_passwd="{{ item }}"
@@ -38,17 +61,25 @@
   become: yes
   template: src=settings.j2 dest=/etc/cobbler/settings
 
-# Create cobbler area in /opt/stack for content that will be used by preseed
-- name: cobbler | configure | Add ardana cobbler directory
+- name: cobbler | configure | Suse - fix cobbler tftpd template
+  become: yes
+  lineinfile:
+    dest: /etc/cobbler/tftpd.template
+    state: present
+    regexp: '^\s*server_args\s*=.*'
+    line: '        server_args             = -u tftp -B 1380 -vvvv -s $args'
+  when: cobbler_is_sles
+
+- name: cobbler | configure | Create directory for preseed content
   become: yes
   file:
-    path: /opt/ardana_packager/preseed
+    path: /srv/www/preseed
     state: directory
     mode: 0755
 
-- name: cobbler | configure | Add ardana cobbler content
+- name: cobbler | configure | Copy preseed content
   become: yes
-  copy: src={{ item }} dest=/opt/ardana_packager/preseed
+  copy: src={{ item }} dest=/srv/www/preseed
   with_items:
      - partition-pxe
      - partition-uefi
@@ -61,7 +92,7 @@
   become: yes
   template:
       src: configure_network.sh.j2
-      dest: /opt/ardana_packager/preseed/configure_network.sh
+      dest: /srv/www/preseed/configure_network.sh
 
 - name: cobbler | configure | set timestamp for installs
   become: yes
@@ -72,8 +103,7 @@
   become: yes
   copy: src={{ local_timestamp_file }} dest=/etc/cobbler_ardana_installed
 
-# Get syslinux bootloader
-
+# Get syslinux bootloaders
 - name: cobbler | configure | Create bootloader directory
   become: yes
   file:
@@ -81,49 +111,23 @@
     state: directory
     mode: 0755
 
-- name: cobbler | configure | Copy menu.c32 to cobbler loaders dir
+# Copy module behaves weird with with_items
+- name: cobbler | configure | Copy various loaders to cobbler loaders dir
   become: yes
-  copy: src=/usr/lib/syslinux/modules/bios/menu.c32 dest=/var/lib/cobbler/loaders
-
-- name: cobbler | configure | Copy pxelinux.0 to cobbler loaders dir
-  become: yes
-  copy: src=/usr/lib/debian-installer/images/8/amd64/gtk/pxelinux.0 dest=/var/lib/cobbler/loaders
-
-- name: cobbler | configure | Copy ldlinux.c32 to cobbler loaders dir
-  become: yes
-  copy: src=/usr/lib/debian-installer/images/8/amd64/gtk/ldlinux.c32 dest=/var/lib/cobbler/loaders
-
-- name: cobbler | configure | Copy shim.efi.signed to cobbler loaders dir
-  become: yes
-  copy:
-    src: /usr/lib/shim/shim.efi.signed
-    dest: /var/lib/cobbler/loaders
-
-- name: cobbler | configure | Copy grubnetx64.efi.signed to cobbler loaders dir
-  become: yes
-  copy:
-    src: /usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed
-    dest: /var/lib/cobbler/loaders
-
-- name: cobbler | configure | rename grubnetx64.efi.signed to grubx64.efi
-  become: yes
-  command: mv /var/lib/cobbler/loaders/grubnetx64.efi.signed /var/lib/cobbler/loaders/grubx64.efi
+  shell: cp -Lf {{ item.src }} /var/lib/cobbler/loaders/{{ item.filename }}
+  with_items: cobbler_bootloader_sources
 
 - name: cobbler | configure | Adding cobbler dhcp template
   become: yes
   template: src=cobbler.dhcp.template.j2 dest=/etc/cobbler/dhcp.template
 
-- name: cobbler | configure | Enable cobbler and and cobbler web in apache
+- name: cobbler | configure | Enable apache modules
   become: yes
-  command: a2enconf cobbler
-
-- name: cobbler | configure | Enable proxy in apache
-  become: yes
-  command: a2enmod proxy
-
-- name: cobbler | configure | Enable proxy_http in apache
-  become: yes
-  command: a2enmod proxy_http
+  command: "a2enmod {{ item }}"
+  with_items:
+    - proxy
+    - proxy_http
+    - access_compat
 
 - name: cobbler | configure | Check SLES Profile
   become: yes

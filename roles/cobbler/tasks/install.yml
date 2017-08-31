@@ -16,32 +16,23 @@
 #
 # Playbook for installing cobbler
 ---
+- name: cobbler | install | Set vars dependent on target OS
+  include_vars: "{{ ansible_os_family.split(' ')[0] | lower | replace('open','') }}.yml"
 
 # Remove any old atftp (this also stops the service)
-- name: cobbler | install | Remove atftpd
+- name: cobbler | install | Remove conflicting packages
   become: yes
-  apt:
-    name: atftpd
+  package:
+    name: "{{ item }}"
     state: absent
-    force: yes
+  with_items: cobbler_remove_packages
 
-- name: cobbler | install | Install cobbler dependencies
+- name: cobbler | install | Install cobbler and dependencies
   become: yes
-  apt:
+  package:
     name: "{{ item }}"
     state: present
-  with_items:
-    - python-jsonschema
-    - python-yaml
-    - cobbler
-    - syslinux-common
-    - debian-installer-8-netboot-amd64
-    - tftpd-hpa
-    - xinetd
-    - fence-agents
-    - ipmitool
-    - shim-signed
-    - grub-efi-amd64-signed
+  with_items: cobbler_install_packages
 
 - name: cobbler | install | Create validate json script
   copy:
@@ -52,13 +43,13 @@
 - name: cobbler | install | Validate json schema
   command: ~/validate_yaml {{ baremetal_config_schema }} {{ baremetal_config }}
 
-- name: cobbler | install | stop tftpd-hpa
+- name: cobbler | install | stop tftpd
   become: yes
-  command: systemctl stop tftpd-hpa
+  command: "systemctl stop {{ cobbler_tftp_service_name }}"
 
-- name: cobbler | install | disable tftpd-hpa
+- name: cobbler | install | disable tftpd
   become: yes
-  command: systemctl disable tftpd-hpa
+  command: "systemctl disable {{ cobbler_tftp_service_name }}"
 
 - name: cobbler install | Get interface name
   shell: netstat -ie | grep -B1 "{{ cobbler_server_ip_addr }}" | head -n1 | awk '{ print $1 }'
@@ -78,18 +69,27 @@
   template:
     src: isc-dhcp-server.j2
     dest: /etc/default/isc-dhcp-server
+  when: not cobbler_is_sles
 
 - name: cobbler | install | Install isc-dhcp-server
   become: yes
-  apt:
-    name: isc-dhcp-server
+  package:
+    name: "{{ cobbler_dhcp_package_name }}"
     state: present
 
 - name: cobbler | install | Create dhcp conf file
   become: yes
   template:
     src: dhcpd.conf.j2
-    dest: /etc/dhcp/dhcpd.conf
+    dest: "{{ cobbler_dhcp_config_file }}"
+
+- name: cobbler | install | Populate isc-dhcp-server sysconfig file
+  become: yes
+  lineinfile:
+    dest: /etc/sysconfig/dhcpd
+    regexp: '^DHCPD_INTERFACE=.*'
+    line: 'DHCPD_INTERFACE="{{ cobbler_server_interface }}"'
+  when: cobbler_is_sles
 
 - name: cobbler | install | Create ipmi lanplus power file
   become: yes
@@ -98,7 +98,7 @@
     dest: /etc/cobbler/power/fence_ipmilan.template
 
 - name: cobbler | install | Get deployer pub ssh key
-  command: cat {{ ardanauser_home }}/.ssh/id_rsa.pub
+  command: cat {{ ardanauser_deployer_home }}/.ssh/id_rsa.pub
   register: sshkeyoutput
 
 - name: cobbler | install | Save deployer ssh key

@@ -37,20 +37,21 @@
 
 - name: cobbler | populate-sles | Test for SLES ISO
   stat:
-    path: "{{ ardanauser_home }}/{{ deployer_sles12_iso }}"
+    path: "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}"
     get_checksum: no
     get_md5: no
   register: _deployer_sles12_iso_exists_result
 
 - name: cobbler | populate-sles | Create temporary mount directory
-  command: mktemp -d
+  become: yes
+  command: mktemp -d -p /srv
   register: _mount_tmpdir
   when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Mount SLES ISO
   become: yes
   command: >
-    mount -o loop "{{ ardanauser_home }}/{{ deployer_sles12_iso }}" "{{ _mount_tmpdir.stdout }}"
+    mount -o ro,loop "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}" "{{ _mount_tmpdir.stdout }}"
   when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Cobbler import
@@ -69,6 +70,7 @@
   when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Remove temporary mount directory
+  become: yes
   file:
     path: "{{ _mount_tmpdir.stdout }}"
     state: absent

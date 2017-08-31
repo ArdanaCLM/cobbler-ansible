@@ -1,0 +1,51 @@
+#
+# (c) Copyright 2015-2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+# This task uses the bminfo struct from get-baremetal-info.yml to derive a
+# bunch of convenience variables that are used in various other plays. It then
+# goes further and figures out the name of the network interface that Cobbler
+# is using, by comparing the baremetal CIDR specified in the model with the
+# actual values in "ip a" on localhost.
+
+cobbler_is_sles: False
+
+cobbler_remove_packages:
+  - atftpd
+
+cobbler_install_packages:
+  - python-jsonschema
+  - python-yaml
+  - cobbler
+  - syslinux-common
+  - debian-installer-8-netboot-amd64
+  - tftpd-hpa
+  - xinetd
+  - fence-agents
+  - ipmitool
+  - shim-signed
+  - grub-efi-amd64-signed
+
+cobbler_tftp_service_name: tftpd-hpa
+cobbler_dhcp_package_name: isc-dhcp-server
+cobbler_dhcp_service_name: isc-dhcp-server
+cobbler_dhcp_config_file: /etc/dhcp/dhcpd.conf
+cobbler_bootloader_sources:
+  - { src: "/usr/lib/syslinux/modules/bios/menu.c32", filename: "menu.c32" }
+  - { src: "/usr/lib/debian-installer/images/8/amd64/gtk/pxelinux.0", filename: "pxelinux.0" }
+  - { src: "/usr/lib/debian-installer/images/8/amd64/gtk/ldlinux.c32", filename: "ldlinux.c32" }
+  - { src: "/usr/lib/shim/shim.efi.signed", filename: "shim.efi.signed" }
+  - { src: "/usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed", filename: "grubx64.efi" }
+cobbler_tftp_dir: /srv/tftp

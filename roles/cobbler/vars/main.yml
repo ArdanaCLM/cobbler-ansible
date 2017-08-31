@@ -14,9 +14,15 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
+
 # Specify variables for the cobbler environment
+
+# User to create on managed node
 ardanauser: "{{ ansible_env['USER'] }}"
+# User home folder on managed node
 ardanauser_home: "{{ ansible_env['HOME'] }}"
+# Local folder on deployer, where RHEL and SLES artifacts are expected to be
+ardanauser_deployer_home: "{{ ansible_env['HOME'] }}"
 
 # The new default is to expect baremetal information inline in servers.yml
 baremetal_config: "{{ playbook_dir }}/../../my_cloud/definition/data/servers.yml"
@@ -40,7 +46,7 @@ suse_url: "{{ hlinux_server }}/{{ suse_path }}"
 
 dhcp_timeout: 240
 
-local_timestamp_file: "/opt/ardana_packager/preseed/timestamp"
+local_timestamp_file: "/srv/www/preseed/timestamp"
 
 set_bootdev: true
 

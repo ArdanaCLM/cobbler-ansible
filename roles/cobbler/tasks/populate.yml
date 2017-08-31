@@ -152,35 +152,26 @@
   become: yes
   command: cobbler sync
 
-# The rest of this file is required for Grub2 support, needed for UEFI and
-# secure boot.
-# WARNING: If you need to call cobbler sync again, then these tasks need to
-# be re-run.
-- name: cobbler | populate | Setup grub.cfg post sync
-  become: yes
-  template:
-    src: grub.cfg.j2
-    dest: /srv/tftp/boot/grub/grub.cfg
+# WARNING: If you need to call cobbler sync again, files listed below need to be
+# copied again to tftp dir, because cobbler sync will remove them.
 
-- name: cobbler | populate | Setup grub.cfg post sync new location
+# In Debian, pxelinux v6 needs additional loadable module which is not properly
+# copied during cobbler sync. In SLES, pxelinux v4 does not require this module.
+- name: cobbler | populate | Insert ldlinux.c32 file
   become: yes
-  template:
-    src: grub.cfg.j2
-    dest: /srv/tftp/grub/grub.cfg
+  command: "cp -f /var/lib/cobbler/loaders/ldlinux.c32 {{ cobbler_tftp_dir }}/ldlinux.c32"
+  when: ansible_os_family == 'Debian'
 
-- name: cobbler | populate | Remove ldlinux.c32 symlink
-  become: yes
-  file:
-    path: /srv/tftp/ldlinux.c32
-    state: absent
-
-- name: cobbler | populate | Insert real ldlinux.c32 file
-  become: yes
-  command: cp /var/lib/cobbler/loaders/ldlinux.c32 /srv/tftp/ldlinux.c32
-
+# grub/shim.efi.signed and grub/grub.cfg are needed for UEFI boot
 - name: cobbler | populate | Insert shim.efi.signed file
   become: yes
-  command: cp /var/lib/cobbler/loaders/shim.efi.signed /srv/tftp/grub
+  command: "cp -f /var/lib/cobbler/loaders/shim.efi.signed {{ cobbler_tftp_dir }}/grub"
+
+- name: cobbler | populate | Insert grub.cfg file
+  become: yes
+  template:
+    src: grub.cfg.j2
+    dest: "{{ cobbler_tftp_dir }}/grub/grub.cfg"
 
 # Seems we need the xinetd restart here
 - name: cobbler | populate | Enable and restart xinetd
@@ -189,4 +180,3 @@
     name: xinetd
     state: restarted
     enabled: yes
-

@@ -22,7 +22,9 @@
   local_action: wait_for port=22 host="{{ cobbler_ip.stdout }}" search_regex=OpenSSH timeout="{{ ssh_wait_seconds }}"
 
 - name: cobbler | wait-for-ssh | Wait for pam_nologin module to cease
-  local_action: shell ssh -o StrictHostKeyChecking=no {{ cobbler_ip.stdout }} hostname
+  local_action: |
+    shell ssh -l {{ ardanauser }} -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null {{ cobbler_ip.stdout }} hostname
   register: remote_ssh_test_result
   until: remote_ssh_test_result.stderr.find("pam_nologin") == -1
   retries: 10
@@ -33,6 +35,9 @@
   register: local_md5sum_data
 
 - name: cobbler | wait-for-ssh | check the timestamp on the dest with local
-  local_action: shell ssh -o StrictHostKeyChecking=no {{ cobbler_ip.stdout }} md5sum /etc/cobbler_ardana_installed | awk '{print $1}'
+  local_action: |
+    shell ssh -l {{ ardanauser }} -o StrictHostKeyChecking=no \
+    -o UserKnownHostsFile=/dev/null {{ cobbler_ip.stdout }} \
+    md5sum /etc/cobbler_ardana_installed | awk '{print $1}'
   register: remote_md5sum_data
   failed_when: remote_md5sum_data.stdout != local_md5sum_data.stdout

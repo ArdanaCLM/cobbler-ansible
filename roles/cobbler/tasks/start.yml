@@ -1,5 +1,5 @@
 #
-# (c) Copyright 2015 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
 # (c) Copyright 2017 SUSE LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -18,7 +18,7 @@
 
 - name: cobbler | start | Enable and restart dhcp service
   become: yes
-  service: name=isc-dhcp-server state=restarted enabled=yes
+  service: name={{ cobbler_dhcp_service_name }} state=restarted enabled=yes
 
 - name:  cobbler | start | Enable and restart apache2
   become: yes
