@@ -133,63 +133,36 @@
   failed_when: false
   changed_when: false
 
-- name: cobbler | configure | distro_signature.json files
+- name: cobbler | configure | Locate distro_signatures.json files
   set_fact:
      distro_signatures_files:
        - /etc/cobbler/distro_signatures.json
        - /var/lib/cobbler/distro_signatures.json
-  when:  _sles_profile_exist_result.rc != 0
+  when: _sles_profile_exist_result.rc != 0
 
-- name: cobbler | configure | Adding sles12sp2 into distro_signatures.json
-  sudo: yes
+- name: cobbler | configure | Fix line endings in distro_signatures.json files
+  become: yes
+  replace: dest="{{ item }}" regexp="\\r"
+  with_items: distro_signatures_files
+  when: _sles_profile_exist_result.rc != 0
+
+- name: cobbler | configure | Modify distro_signatures.json for sles12sp3
+  become: yes
   lineinfile:
     dest: "{{ item }}"
     state: present
-    regexp: '^"sles12": {'
-    insertbefore: '"sles12":'
-    line: >
-                "sles12sp2": {
-                   "signatures":["suse"],
-                   "version_file":"(sles|SLES-for-VMware)-release-12.2-(.*).rpm",
-                   "version_file_regex":null,
-                   "kernel_arch":"kernel-(.*)\\\\.rpm",
-                   "kernel_arch_regex":null,
-                   "supported_arches":["i386","i586","x86_64","ppc64"],
-                   "supported_repo_breeds":["yum"],
-                   "kernel_file":"linux[64.gz]?",
-                   "initrd_file":"initrd[64]?",
-                   "isolinux_ok":false,
-                   "default_kickstart":"/var/lib/cobbler/kickstarts/sample_autoyast.xml",
-                   "kernel_options":"install=$tree",
-                   "kernel_options_post":"",
-                   "boot_files":[]
-                },
+    regexp: '^\s*"sles12(sp3)?":'
+    line: '   "sles12sp3": {'
   with_items: distro_signatures_files
   when:  _sles_profile_exist_result.rc != 0
 
-- name: cobbler | configure | Adding sles12sp3 into distro_signatures.json
-  sudo: yes
+- name: cobbler | configure | Modify distro_signatires.json for sles12sp3
+  become: yes
   lineinfile:
     dest: "{{ item }}"
     state: present
-    regexp: '^"sles12": {'
-    insertbefore: '"sles12":'
-    line: >
-                "sles12sp3": {
-                   "signatures":["suse"],
-                   "version_file":"(sles|SLES-for-VMware)-release-12.3-(.*).rpm",
-                   "version_file_regex":null,
-                   "kernel_arch":"kernel-(.*)\\\\.rpm",
-                   "kernel_arch_regex":null,
-                   "supported_arches":["i386","i586","x86_64","ppc64"],
-                   "supported_repo_breeds":["yum"],
-                   "kernel_file":"linux[64.gz]?",
-                   "initrd_file":"initrd[64]?",
-                   "isolinux_ok":false,
-                   "default_kickstart":"/var/lib/cobbler/kickstarts/sample_autoyast.xml",
-                   "kernel_options":"install=$tree",
-                   "kernel_options_post":"",
-                   "boot_files":[]
-                },
+    regexp: '^\s*"version_file":"\(sles|SLES-for-VMware\)-release-12(\.3)?-"'
+    line: '    "version_file":"(sles|SLES-for-VMware)-release-12.3-(.*).rpm",'
   with_items: distro_signatures_files
-  when:  _sles_profile_exist_result.rc != 0
+  when: _sles_profile_exist_result.rc != 0
+

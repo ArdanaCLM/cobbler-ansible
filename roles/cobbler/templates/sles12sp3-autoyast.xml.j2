@@ -1,6 +1,5 @@
 {#
 # (c) Copyright 2017 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
 #}
 <?xml version="1.0"?>
 <!DOCTYPE profile>
@@ -16,9 +15,9 @@
     <mode>
       <confirm config:type="boolean">false</confirm>
       <final_halt config:type="boolean">false</final_halt>
-      <final_reboot config:type="boolean">true</final_reboot>
+      <final_reboot config:type="boolean">false</final_reboot>
       <halt config:type="boolean">true</halt>
-      <second_stage config:type="boolean">true</second_stage>
+      <second_stage config:type="boolean">false</second_stage>
     </mode>
     <signature-handling>
       <accept_file_without_checksum config:type="boolean">false</accept_file_without_checksum>
@@ -48,8 +47,16 @@
       <package>sudo</package>
       <package>kdump</package>
       <package>rsyslog</package>
+      <package>iputils</package>
     </packages>
   </software>
+  <kdump>
+    <add_crash_kernel config:type="boolean">true</add_crash_kernel>
+    <crash_kernel config:type="list">
+      <listentry>128M,low</listentry>
+      <listentry>768M,high</listentry>
+    </crash_kernel>
+  </kdump>
   <networking>
     <interfaces config:type="list">
       <interface>
@@ -117,8 +124,6 @@
       <script>
         <filename>autoyast-init-scripts-1.sh</filename>
         <source><![CDATA[
-tmpfile=`mktemp`
-
 # set flag
 wget http://$http_server/preseed/timestamp -O /etc/cobbler_ardana_installed
 
@@ -153,12 +158,6 @@ chmod 644 /etc/modprobe.d/bnx2x.conf
 wget http://$http_server/preseed/configure_network.sh -O  /tmp/configure_network.sh
 bash /tmp/configure_network.sh
 rm /tmp/configure_network.sh
-
-sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="crashkernel=768M,high crashkernel=128M,low"/g' /etc/default/grub
-grub2-mkconfig -o /boot/grub2/grub.cfg
-dracut -f
-
-rm -f $tmpfile
         ]]></source>
       </script>
     </init-scripts>

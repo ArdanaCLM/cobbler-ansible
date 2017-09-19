@@ -1,5 +1,5 @@
 #
-# (c) Copyright 2015 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
 # (c) Copyright 2017 SUSE LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -20,6 +20,13 @@
 
 - name: cobbler | wait-for-ssh | Wait for ssh to come online
   local_action: wait_for port=22 host="{{ cobbler_ip.stdout }}" search_regex=OpenSSH timeout="{{ ssh_wait_seconds }}"
+
+- name: cobbler | wait-for-ssh | Wait for pam_nologin module to cease
+  local_action: shell ssh -o StrictHostKeyChecking=no {{ cobbler_ip.stdout }} hostname
+  register: remote_ssh_test_result
+  until: remote_ssh_test_result.stderr.find("pam_nologin") == -1
+  retries: 10
+  delay: 5
 
 - name: cobbler | wait-for-ssh | Get md5sum
   local_action: shell md5sum {{ local_timestamp_file }} | awk '{print $1}'
