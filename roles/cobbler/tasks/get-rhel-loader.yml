@@ -1,0 +1,98 @@
+#
+# (c) Copyright 2016 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+---
+- name: cobbler | get-rhel-loader | Install rpm2cpio
+  become: yes
+  apt:
+    name: rpm2cpio
+    state: installed
+
+- name: cobbler | get-rhel-loader | Mount iso on deployer
+  become: yes
+  mount:
+    name: /mnt
+    src: "{{ rhel_iso_location }}"
+    fstype: iso9660
+    opts: ro
+    state: mounted
+
+- name: cobbler | get-rhel-loader | Create tmp dir on deployer
+  command: mktemp -dt ardana.XXXXXXXX
+  register: uefi_deployer_tmp_dir_result
+
+- name: cobbler | get-rhel-loader | Define deployer tmp dir fact
+  set_fact:
+    uefi_deployer_tmp_dir: "{{ uefi_deployer_tmp_dir_result.stdout }}"
+
+- name: cobbler | get-rhel-loader | Extract shim/grub on deployer
+  become: yes
+  copy:
+    src: "{{ item }}"
+    dest: "{{ uefi_deployer_tmp_dir }}"
+  with_fileglob:
+    - /mnt/Packages/{{ rhel_shim_rpm }}
+    - /mnt/Packages/{{ grub2_efi_rpm }}
+
+- name: cobbler | get-rhel-loader | Unmount iso on deployer
+  become: yes
+  mount:
+    name: /mnt
+    src: "{{ rhel_iso_location }}"
+    fstype: iso9660
+    state: unmounted
+
+- name: cobbler | get-rhel-loader | Execute rpm2cpio
+  become: yes
+  shell: rpm2cpio {{ item }} | cpio -dimv
+  args:
+    chdir: "{{ uefi_deployer_tmp_dir }}"
+  with_fileglob:
+    - "{{ uefi_deployer_tmp_dir }}/{{ rhel_shim_rpm }}"
+    - "{{ uefi_deployer_tmp_dir }}/{{ grub2_efi_rpm }}"
+
+- name: cobbler | get-rhel-loader | Move loader into cobbler
+  become: yes
+  command: >
+    mv "{{ uefi_deployer_tmp_dir }}/{{ grubx64_location }}" /srv/tftp/grub
+
+- name: cobbler | get-rhel-loader | Move shim into cobbler
+  become: yes
+  command: >
+     mv "{{ uefi_deployer_tmp_dir }}/{{ rhel_shim_location }}"
+           /srv/tftp/grub/shim.efi.signed
+
+- name: cobbler | get-rhel-loader | root owns the loader
+  become: yes
+  file:
+    path: /srv/tftp/grub/grubx64.efi
+    owner: root
+    group: root
+    mode: 0644
+
+- name: cobbler | get-rhel-loader | root owns the shim
+  become: yes
+  file:
+    path: /srv/tftp/grub/shim.efi.signed
+    owner: root
+    group: root
+    mode: 0644
+
+- name: cobbler | get-rhel-loader | Cleanup deployer tmp dir
+  become: yes
+  file:
+    path: "{{ uefi_deployer_tmp_dir }}"
+    state: absent

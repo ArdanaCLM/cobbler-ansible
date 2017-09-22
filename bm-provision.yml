@@ -1,0 +1,53 @@
+#
+# (c) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+---
+- include: bm-target-netboot-nodes.yml
+  when: dynamic_targets_created is undefined
+
+- hosts: localhost
+  become: yes
+  roles:
+    - cobbler
+  tasks:
+    - shell: date +%Y%m%d%H%M%S > {{ local_timestamp_file }}
+
+# Cobbler cli is not thread safe so have to do these one at a time.
+- hosts: dynamic_targets
+  serial: 1
+  roles:
+    - cobbler
+  tasks:
+    - include: roles/cobbler/tasks/netboot-on.yml
+      when: set_bootdev
+
+- hosts: dynamic_targets
+  serial: "{{ bm_batch_size | default(20) }}"
+  roles:
+    - cobbler
+  tasks:
+    - name: "Starting reimage batch"
+      pause:
+        seconds: 10
+    - include: roles/cobbler/tasks/set-pxeboot.yml
+      when: set_bootdev
+    - include: roles/cobbler/tasks/power-cycle.yml
+    - name: "These nodes have been instructed to install over PXE"
+      pause:
+        minutes: 3
+    - include: roles/cobbler/tasks/wait-for-shutdown.yml
+    - include: roles/cobbler/tasks/set-diskboot.yml
+      when: set_bootdev

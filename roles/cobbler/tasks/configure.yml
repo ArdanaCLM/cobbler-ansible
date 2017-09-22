@@ -1,0 +1,168 @@
+#
+# (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+---
+
+- name: cobbler | configure | Adding cobbler apache configuration
+  become: yes
+  copy: src=/etc/apache2/conf.d/cobbler.conf dest=/etc/apache2/conf-available/
+
+- name: cobbler | configure | Adding cobbler configuration
+  become: yes
+  template: src=cobbler.conf dest=/etc/apache2/conf-available/cobbler.conf
+
+- name: cobbler | configure | set default passwd
+  set_fact: cobbler_default_passwd="{{ item }}"
+  with_password: /tmp/cobbler_setup  encrypt=sha512_crypt
+
+- name: cobbler | configure | rm temp file
+  file:
+    path: /tmp/cobbler_setup
+    state: absent
+    recurse: no
+
+- name: cobbler | configure | Adding cobbler settings file
+  become: yes
+  template: src=settings.j2 dest=/etc/cobbler/settings
+
+# Create cobbler area in /opt/stack for content that will be used by preseed
+- name: cobbler | configure | Add ardana cobbler directory
+  become: yes
+  file:
+    path: /opt/ardana_packager/preseed
+    state: directory
+    mode: 0755
+
+- name: cobbler | configure | Add ardana cobbler content
+  become: yes
+  copy: src={{ item }} dest=/opt/ardana_packager/preseed
+  with_items:
+     - partition-pxe
+     - partition-uefi
+     - configure_partitioning
+     - configure_kdump
+     - bnx2x.conf
+     - update_fcoe_udev.py
+
+- name: cobbler | configure | Add option to add gateway
+  become: yes
+  template:
+      src: configure_network.sh.j2
+      dest: /opt/ardana_packager/preseed/configure_network.sh
+
+- name: cobbler | configure | set timestamp for installs
+  become: yes
+  shell: date +%Y%m%d%H%M%S > {{ local_timestamp_file }}
+
+# Temp until CI updated
+- name: cobbler | configure | Set local stamp
+  become: yes
+  copy: src={{ local_timestamp_file }} dest=/etc/cobbler_ardana_installed
+
+# Get syslinux bootloader
+
+- name: cobbler | configure | Create bootloader directory
+  become: yes
+  file:
+    path: /var/lib/cobbler/loaders
+    state: directory
+    mode: 0755
+
+- name: cobbler | configure | Copy menu.c32 to cobbler loaders dir
+  become: yes
+  copy: src=/usr/lib/syslinux/modules/bios/menu.c32 dest=/var/lib/cobbler/loaders
+
+- name: cobbler | configure | Copy pxelinux.0 to cobbler loaders dir
+  become: yes
+  copy: src=/usr/lib/debian-installer/images/8/amd64/gtk/pxelinux.0 dest=/var/lib/cobbler/loaders
+
+- name: cobbler | configure | Copy ldlinux.c32 to cobbler loaders dir
+  become: yes
+  copy: src=/usr/lib/debian-installer/images/8/amd64/gtk/ldlinux.c32 dest=/var/lib/cobbler/loaders
+
+- name: cobbler | configure | Copy shim.efi.signed to cobbler loaders dir
+  become: yes
+  copy:
+    src: /usr/lib/shim/shim.efi.signed
+    dest: /var/lib/cobbler/loaders
+
+- name: cobbler | configure | Copy grubnetx64.efi.signed to cobbler loaders dir
+  become: yes
+  copy:
+    src: /usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed
+    dest: /var/lib/cobbler/loaders
+
+- name: cobbler | configure | rename grubnetx64.efi.signed to grubx64.efi
+  become: yes
+  command: mv /var/lib/cobbler/loaders/grubnetx64.efi.signed /var/lib/cobbler/loaders/grubx64.efi
+
+- name: cobbler | configure | Adding cobbler dhcp template
+  become: yes
+  template: src=cobbler.dhcp.template.j2 dest=/etc/cobbler/dhcp.template
+
+- name: cobbler | configure | Enable cobbler and and cobbler web in apache
+  become: yes
+  command: a2enconf cobbler
+
+- name: cobbler | configure | Enable proxy in apache
+  become: yes
+  command: a2enmod proxy
+
+- name: cobbler | configure | Enable proxy_http in apache
+  become: yes
+  command: a2enmod proxy_http
+
+- name: cobbler | configure | Check SLES Profile
+  become: yes
+  command: >
+    cobbler profile report --name {{ sles_profile_name }}-x86_64
+  register: _sles_profile_exist_result
+  failed_when: false
+  changed_when: false
+
+- name: cobbler | configure | distro_signature.json files
+  set_fact:
+     distro_signatures_files:
+       - /etc/cobbler/distro_signatures.json
+       - /var/lib/cobbler/distro_signatures.json
+  when:  _sles_profile_exist_result.rc != 0
+
+- name: cobbler | configure | Adding sles12sp2 into distro_signatures.json
+  sudo: yes
+  lineinfile:
+    dest: "{{ item }}"
+    state: present
+    regexp: '^"sles12": {'
+    insertbefore: '"sles12":'
+    line: >
+                "sles12sp2": {
+                   "signatures":["suse"],
+                   "version_file":"(sles|SLES-for-VMware)-release-12.2-(.*).rpm",
+                   "version_file_regex":null,
+                   "kernel_arch":"kernel-(.*)\\\\.rpm",
+                   "kernel_arch_regex":null,
+                   "supported_arches":["i386","i586","x86_64","ppc64"],
+                   "supported_repo_breeds":["yum"],
+                   "kernel_file":"linux[64.gz]?",
+                   "initrd_file":"initrd[64]?",
+                   "isolinux_ok":false,
+                   "default_kickstart":"/var/lib/cobbler/kickstarts/sample_autoyast.xml",
+                   "kernel_options":"install=$tree",
+                   "kernel_options_post":"",
+                   "boot_files":[]
+                },
+  with_items: distro_signatures_files
+  when:  _sles_profile_exist_result.rc != 0

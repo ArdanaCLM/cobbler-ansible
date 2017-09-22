@@ -1,0 +1,183 @@
+{#
+# (c) Copyright 2017 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#}
+<?xml version="1.0"?>
+<!DOCTYPE profile>
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <deploy_image>
+    <image_installation config:type="boolean">false</image_installation>
+  </deploy_image>
+  <language>
+    <language>en_US</language>
+    <languages>en_GB,de_DE</languages>
+  </language>
+  <general>
+    <mode>
+      <confirm config:type="boolean">false</confirm>
+      <final_halt config:type="boolean">false</final_halt>
+      <final_reboot config:type="boolean">true</final_reboot>
+      <halt config:type="boolean">true</halt>
+      <second_stage config:type="boolean">true</second_stage>
+    </mode>
+    <signature-handling>
+      <accept_file_without_checksum config:type="boolean">false</accept_file_without_checksum>
+      <accept_non_trusted_gpg_key config:type="boolean">false</accept_non_trusted_gpg_key>
+      <accept_unknown_gpg_key config:type="boolean">false</accept_unknown_gpg_key>
+      <accept_unsigned_file config:type="boolean">false</accept_unsigned_file>
+      <accept_verification_failed config:type="boolean">false</accept_verification_failed>
+      <import_gpg_key config:type="boolean">false</import_gpg_key>
+    </signature-handling>
+    <storage/>
+  </general>
+  <software>
+    <install_recommended config:type="boolean">false</install_recommended>
+    <packages config:type="list">
+      <package>dracut</package>
+      <package>eject</package>
+      <package>gcc</package>
+      <package>gdisk</package>
+      <package>gptfdisk</package>
+      <package>kernel-firmware</package>
+      <package>kexec-tools</package>
+      <package>man</package>
+      <package>openssh</package>
+      <package>python</package>
+      <package>python-xml</package>
+      <package>rsync</package>
+      <package>sudo</package>
+      <package>kdump</package>
+      <package>rsyslog</package>
+    </packages>
+  </software>
+  <networking>
+    <interfaces config:type="list">
+      <interface>
+        <bootproto>dhcp</bootproto>
+        <device>eth0</device>
+        <dhclient_set_default_route>no</dhclient_set_default_route>
+        <dhclient_set_hostname>no</dhclient_set_hostname>
+        <startmode>auto</startmode>
+      </interface>
+    </interfaces>
+    <ipv6 config:type="boolean">true</ipv6>
+    <keep_install_network config:type="boolean">true</keep_install_network>
+    <managed config:type="boolean">false</managed>
+    <routing>
+      <ipv4_forward config:type="boolean">false</ipv4_forward>
+      <ipv6_forward config:type="boolean">false</ipv6_forward>
+    </routing>
+  </networking>
+  <partitioning config:type="list">
+    <drive>
+      <device>/dev/sda</device>
+      <disklabel>gpt</disklabel>
+          <initialize config:type="boolean">true</initialize>
+      <partitions config:type="list">
+        <partition>
+          <create config:type="boolean">true</create>
+          <format config:type="boolean">true</format>
+          <filesystem config:type="symbol">ext4</filesystem>
+          <mount>/boot</mount>
+          <size>250M</size>
+        </partition>
+        <partition>
+          <lvm_group>ardana-vg</lvm_group>
+        </partition>
+      </partitions>
+      <type config:type="symbol">CT_DISK</type>
+      <use>all</use>
+    </drive>
+    <drive>
+      <device>/dev/ardana-vg</device>
+      <partitions config:type="list">
+        <partition>
+          <create config:type="boolean">true</create>
+          <format config:type="boolean">true</format>
+          <filesystem config:type="symbol">ext4</filesystem>
+          <lv_name>root</lv_name>
+          <mount>/</mount>
+          <size>30G</size>
+        </partition>
+      </partitions>
+      <type config:type="symbol">CT_LVM</type>
+      <use>all</use>
+    </drive>
+  </partitioning>
+  <scripts>
+    <init-scripts config:type="list">
+      <script>
+        <filename>autoyast-init-scripts-0.sh</filename>
+        <source><![CDATA[
+            systemctl enable sshd.service
+            systemctl enable kdump rsyslog
+        ]]></source>
+      </script>
+      <script>
+        <filename>autoyast-init-scripts-1.sh</filename>
+        <source><![CDATA[
+tmpfile=`mktemp`
+
+# set flag
+wget http://$http_server/preseed/timestamp -O /etc/cobbler_ardana_installed
+
+# ardanauser access
+mkdir -p {{ ardanauser_home }}/.ssh
+echo "{{ deployer_ssh_pub_key }}" > {{ ardanauser_home }}/.ssh/authorized_keys
+chown -R {{ ardanauser }}:{{ ardanauser }} {{ ardanauser_home }}/.ssh
+chmod 0700 {{ ardanauser_home }}/.ssh
+chmod 0600 {{ ardanauser_home }}/.ssh/authorized_keys
+
+# sudo
+dest=/etc/sudoers
+sed -i "s,sudo[\t]ALL=(ALL:ALL) ALL,sudo ALL = (ALL) NOPASSWD: ALL,g" $dest
+line="%sudo ALL = (ALL) NOPASSWD: ALL"
+r=`grep "$line" $dest`
+if [ -z "$r" ]; then
+  echo >> $dest
+  echo "# Allow members of group sudo to execute any command" >> $dest
+  echo $line >> $dest
+fi
+
+{% if disable_pwd_auth == true %}
+# SSH
+sed -i "s,#PasswordAuthentication yes,PasswordAuthentication no,g" /etc/ssh/sshd_config
+{% endif %}
+
+rm /etc/resolv.conf
+
+wget http://$http_server/preseed/bnx2x.conf -O /etc/modprobe.d/bnx2x.conf
+chmod 644 /etc/modprobe.d/bnx2x.conf
+
+wget http://$http_server/preseed/configure_network.sh -O  /tmp/configure_network.sh
+bash /tmp/configure_network.sh
+rm /tmp/configure_network.sh
+
+sed -i 's/GRUB_CMDLINE_LINUX=""/GRUB_CMDLINE_LINUX="crashkernel=768M,high crashkernel=128M,low"/g' /etc/default/grub
+grub2-mkconfig -o /boot/grub2/grub.cfg
+dracut -f
+
+rm -f $tmpfile
+        ]]></source>
+      </script>
+    </init-scripts>
+  </scripts>
+  <groups config:type="list">
+    <group>
+      <groupname>sudo</groupname>
+      <userlist>{{ ardanauser }}</userlist>
+    </group>
+    <group>
+      <groupname>{{ ardanauser }}</groupname>
+      <userlist>{{ ardanauser }}</userlist>
+    </group>
+  </groups>
+  <users config:type="list">
+    <user>
+      <username>{{ ardanauser }}</username>
+      <user_password>{{ ardanauser_password | password_hash('sha512') }}</user_password><encrypted config:type="boolean">true</encrypted>
+      <home>{{ ardanauser_home }}</home>
+    </user>
+  </users>
+</profile>
+

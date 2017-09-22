@@ -1,0 +1,47 @@
+#
+# (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# Specify variables for the cobbler environment
+ardanauser: "{{ ansible_env['USER'] }}"
+ardanauser_home: "{{ ansible_env['HOME'] }}"
+
+# The new default is to expect baremetal information inline in servers.yml
+baremetal_config: "{{ playbook_dir }}/../../my_cloud/definition/data/servers.yml"
+baremetal_config_schema: "{{ 'config-processor' | share_dir }}/ardana-config-processor/Data/Site/Schema/2.0/server.yml"
+
+iso_dir: /srv/www/cobbler/iso
+cobbler_root_device: /dev/sda
+boot_from_san_root_device: /dev/mapper/mpatha
+disable_pwd_auth: true
+
+off_poll_seconds: 15
+off_poll_retries: 150
+
+ssh_wait_seconds: 1500
+
+hlinux_server_port: 79
+hlinux_path: "ardana/hlinux"
+suse_path: "ardana/suse"
+hlinux_url: "{{ hlinux_server }}/{{ hlinux_path }}"
+suse_url: "{{ hlinux_server }}/{{ suse_path }}"
+
+dhcp_timeout: 240
+
+local_timestamp_file: "/opt/ardana_packager/preseed/timestamp"
+
+set_bootdev: true
+
+enable_gateway: false

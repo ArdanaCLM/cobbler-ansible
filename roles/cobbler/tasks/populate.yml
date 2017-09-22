@@ -1,0 +1,192 @@
+#
+# (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+---
+# Make path for isos
+- name: cobbler | populate | Create directory for isos
+  become: yes
+  file:
+    path: /srv/www/cobbler/iso
+    state: directory
+    mode: 0755
+
+# Remote distros
+
+- name: Compile distro in-use list
+  set_fact:
+    remote_distros_inuse: >
+      {%- set distros = [] %}
+      {%- for distro_id in bminfo.servers | map(attribute='distro_id') | unique %}
+      {%-   for distro in remote_distros %}
+      {%-     if [distro.name, distro.arch] | join('-') == distro_id %}
+      {%-       set _ = distros.append(distro) %}
+      {%-     endif %}
+      {%-   endfor %}
+      {%- endfor %}
+      {{- distros -}}
+
+- name: cobbler | populate | Check distro exists in cobbler
+  become: yes
+  with_items: remote_distros_inuse
+  command: cobbler distro report --name={{ item.name }}-{{ item.arch }}
+  register: distro_exists
+  changed_when: false
+  failed_when: false
+
+- name: cobbler | populate | Fail if any managed distro(s) are missing
+  fail:
+    msg: "Cobbler distro {{ item.item.name }}-{{ item.item.arch }}, managed by '{{ item.item.managed_by }}', does not exist"
+  when:
+    item.rc != 0 and
+    item.item.managed_by|default('') != ''
+  with_items: distro_exists.results
+
+- name: cobbler | populate | Create directory for net images
+  become: yes
+  file:
+    path: "{{ item.item.file }}"
+    state: directory
+    mode: 0755
+  when:
+    item.rc != 0 and
+    item.item.managed_by|default('') == ''
+  with_items: distro_exists.results
+
+- name: cobbler | populate | Get net kernel
+  become: yes
+  get_url:
+    url: "{{ item.item.url }}/dists/{{ item.item.distro }}/{{ item.item.url_boot_path }}/{{ item.item.kernel }}"
+    dest: "{{ item.item.file }}"
+  when:
+    item.item.managed_by|default('') == ''
+  with_items: distro_exists.results
+
+- name: cobbler | populate | Get net initrd
+  become: yes
+  get_url:
+    url: "{{ item.item.url }}/dists/{{ item.item.distro }}/{{ item.item.url_boot_path }}/{{ item.item.initrd }}"
+    dest: "{{ item.item.file }}"
+  when:
+    item.item.managed_by|default('') == ''
+  with_items: distro_exists.results
+
+- name: cobbler | populate | Add distro
+  become: yes
+  shell: >
+    cobbler distro add
+    --name="{{ item.item.name }}-{{ item.item.arch }}"
+    --kernel="{{ item.item.file }}/{{ item.item.kernel }}"
+    --initrd="{{ item.item.file }}/{{ item.item.initrd }}"
+    {% if item.item.os_version is defined %}--os-version={{ item.item.os_version }}{% endif %}
+    --arch={{ item.item.arch | quote }}
+    --breed={{ item.item.breed }}
+    --kopts="{{ item.item.kopts | default('') }}"
+  when:
+    item.rc != 0 and
+    item.item.managed_by|default('') == ''
+  with_items: distro_exists.results
+
+- name: cobbler | populate | Add Profile
+  become: yes
+  shell: >
+    cobbler profile report --name "{{ item[1].distro_id }}-{{ item[1].id }}" ||
+    cobbler profile add
+    --name="{{ item[1].distro_id }}-{{ item[1].id }}"
+    --distro="{{ item[1].distro_id }}"
+    --kickstart="/var/lib/cobbler/kickstarts/{{ item[0].item.kickstart }}-{{ item[1].id }}"
+  when:
+    "'{{ item[0].item.name }}-{{ item[0].item.arch }}' == '{{ item[1].distro_id }}'"
+  with_nested:
+      - distro_exists.results
+      - bminfo.servers
+
+- name: cobbler | populate | Check system exists in cobbler
+  become: yes
+  with_items: bminfo.servers
+  command: cobbler system report --name={{ item.id | quote }}
+  register: systems_exists
+  changed_when: false
+  failed_when: false
+
+# I think we should probably assign the ip addresses here as static
+# Need to get dhcp managed by cobbler
+- name: cobbler | populate | Load servers into cobbler
+  become: yes
+  shell: >
+    cobbler system add
+    --name={{ item.item.id | quote }}
+    --profile="{{ item.item.distro_id }}-{{ item.item.id }}"
+    --ip-address={{ item.item.ip_addr | quote }}
+    {% if item.item.distro_id | search('^hlinux') or
+          item.item.distro_id | search('^rhel') %}
+    --kopts="interface={{ item.item.mac_addr }} netcfg/dhcp_timeout={{ dhcp_timeout }} {{ item.item.kopt_extras | default('') }}"
+    {% elif item.item.distro_id | search('^sles') %}
+    --kopts="ifcfg={{ item.item.mac_addr }}=dhcp4,DHCLIENT_WAIT_AT_BOOT={{ dhcp_timeout }},WAIT_FOR_INTERFACES={{ dhcp_timeout }} {{ item.item.kopt_extras | default('') }}"
+    {% endif %}
+    --gateway={{ cobbler_gateway }}
+    --mac={{ item.item.mac_addr | quote }}
+    --interface={{ item.item.mac_addr | quote }}
+    --hostname={{ item.item.id | quote }}
+    --netboot-enabled=true
+    --power-type=ipmilan
+    --power-address={{ item.item.ilo_ip | quote }}
+    --power-user="redacted"
+    --power-pass="redacted"
+  when: item.rc != 0 and bminfo.whoami != item.item.id
+  with_items: systems_exists.results
+
+- name: cobbler | populate | Cobbler sync
+  become: yes
+  command: cobbler sync
+
+# The rest of this file is required for Grub2 support, needed for UEFI and
+# secure boot.
+# WARNING: If you need to call cobbler sync again, then these tasks need to
+# be re-run.
+- name: cobbler | populate | Setup grub.cfg post sync
+  become: yes
+  template:
+    src: grub.cfg.j2
+    dest: /srv/tftp/boot/grub/grub.cfg
+
+- name: cobbler | populate | Setup grub.cfg post sync new location
+  become: yes
+  template:
+    src: grub.cfg.j2
+    dest: /srv/tftp/grub/grub.cfg
+
+- name: cobbler | populate | Remove ldlinux.c32 symlink
+  become: yes
+  file:
+    path: /srv/tftp/ldlinux.c32
+    state: absent
+
+- name: cobbler | populate | Insert real ldlinux.c32 file
+  become: yes
+  command: cp /var/lib/cobbler/loaders/ldlinux.c32 /srv/tftp/ldlinux.c32
+
+- name: cobbler | populate | Insert shim.efi.signed file
+  become: yes
+  command: cp /var/lib/cobbler/loaders/shim.efi.signed /srv/tftp/grub
+
+# Seems we need the xinetd restart here
+- name: cobbler | populate | Enable and restart xinetd
+  become: yes
+  service:
+    name: xinetd
+    state: restarted
+    enabled: yes
+

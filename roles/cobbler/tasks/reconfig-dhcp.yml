@@ -1,0 +1,45 @@
+#
+# (c) Copyright 2016 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+# --------------------------------------------------------------------------
+# The name of the network interface that Cobbler is using will potentially
+# change after the NIC Mappings are applied in osconfig-run. If that happens
+# then the Cobbler DHCP configuration will be stale and we need to update it
+# with the new name of that interface. The correct value has already been
+# computed in set-vars and is available to us as "cobbler_server_interface".
+---
+- name: cobbler | reconfig-dhcp | am i running cobbler dhcp
+  stat:
+    path: /etc/init.d/isc-dhcp-server
+  register: cobbler_dhcp_here_result
+
+- name: cobbler | reconfig-dhcp | set interface name
+  become: yes
+  lineinfile:
+    create: no
+    dest: /etc/default/isc-dhcp-server
+    regexp: ^INTERFACES=.*
+    line: INTERFACES="{{ cobbler_server_interface }}"
+  when: cobbler_dhcp_here_result.stat.exists
+  register: cobbler_dhcp_changed_result
+
+- name: cobbler | reconfig-dhcp | restart service
+  become: yes
+  service:
+    name: isc-dhcp-server
+    state: restarted
+  when: cobbler_dhcp_changed_result | changed

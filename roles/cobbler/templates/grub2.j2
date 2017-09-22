@@ -1,0 +1,11 @@
+{#
+#
+# (c) Copyright 2016 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+#}
+set timeout=5
+menuentry 'RHEL 7.2 Cobbler install' {
+  linuxefi images/rhel72-x86_64/vmlinuz interface={{ item[0] }} inst.ks=http://{{ cobbler_server_ip_addr }}:79/cblr/svc/op/ks/system/{{ item[1] }} inst.repo=http://{{ cobbler_server_ip_addr }}:79/cblr/ks_mirror/rhel72 inst.ks.sendmac inst.text ip=dhcp ksdevice=bootif lang=
+  initrdefi images/rhel72-x86_64/initrd.img
+}

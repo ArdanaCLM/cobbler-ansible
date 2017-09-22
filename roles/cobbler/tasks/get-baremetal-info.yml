@@ -1,0 +1,27 @@
+#
+# (c) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+
+# This task runs a module on localhost that extracts networking information
+# from the baremetal section of the model and returns it in a convenient struct
+# that is consumed by various other plays. I'm using run_once because this task
+# might get run against a bunch of nodes in parallel. That's not dangerous or
+# anything, but they'd all get the same answer (because they're all working
+# with the same source data from localhost) so it's pointless repetition.
+# Run once, we don't even care on what node; the result will be the same.
+
+- name: cobbler | get-baremetal-info | Get baremetal info
+  local_action: bmconfig file={{ baremetal_config }}
