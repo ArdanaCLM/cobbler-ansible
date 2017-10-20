@@ -15,6 +15,10 @@
 # under the License.
 #
 ---
+- include: pbstart.yml
+  vars:
+    playbook_name: "bm-reimage.yml"
+
 - include: bm-target-netboot-nodes.yml
   when: dynamic_targets_created is undefined
 
@@ -39,3 +43,7 @@
       pause: minutes=1
 
 - include: bm-diskboot.yml
+
+- include: pbfinish.yml
+  vars:
+    playbook_name: "bm-reimage.yml"

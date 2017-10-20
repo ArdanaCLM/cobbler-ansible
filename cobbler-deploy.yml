@@ -15,6 +15,9 @@
 # under the License.
 #
 ---
+- include: pbstart.yml
+  vars:
+    playbook_name: "cobbler-deploy.yml"
 
 - hosts: localhost
   roles:
@@ -35,3 +38,7 @@
     - include: roles/cobbler/tasks/populate-rhel.yml
     - include: roles/cobbler/tasks/populate-sles.yml
     - include: roles/cobbler/tasks/populate.yml
+
+- include: pbfinish.yml
+  vars:
+    playbook_name: "cobbler-deploy.yml"

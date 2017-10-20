@@ -15,6 +15,10 @@
 # under the License.
 #
 ---
+- include: pbstart.yml
+  vars:
+    playbook_name: "bm-power-status.yml"
+
 - include: bm-target-all-nodes.yml
   when: dynamic_targets_created is undefined
 
@@ -24,3 +28,7 @@
   tasks:
     - include: roles/cobbler/tasks/get-power-status.yml
     - debug: msg="{{ ipmi_connectivity.power }}"
+
+- include: pbfinish.yml
+  vars:
+    playbook_name: "bm-power-status.yml"
