@@ -53,7 +53,8 @@
   register: _deployer_rhel7_iso_exists_result
 
 - name: cobbler | populate-rhel | Create temporary mount directory
-  command: mktemp -d
+  become: yes
+  command: mktemp -d -p /srv
   register: _mount_tmpdir
   when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
 
@@ -92,6 +93,7 @@
   when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
 
 - name: cobbler | populate-rhel | Remove temporary mount directory
+  become: yes
   file:
     path: "{{ _mount_tmpdir.stdout }}"
     state: absent
