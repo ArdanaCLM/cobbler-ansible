@@ -1,0 +1,19 @@
+#
+# (c) Copyright 2017,2018 SUSE LLC
+#
+---
+- hosts: localhost
+  roles:
+    - cobbler
+
+  tasks:
+
+    - include: roles/cobbler/tasks/set-vars.yml
+
+    - include: roles/cobbler/tasks/get-sles-loader-file.yml
+      vars:
+        filepath: "{{ file }}"
+      when: file is defined and (ansible_os_family  == 'Debian')
+
+    - include: roles/cobbler/tasks/get-sles-loader.yml
+      when: file is not defined and (ansible_os_family  == 'Debian')

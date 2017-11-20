@@ -15,6 +15,9 @@
 # under the License.
 #
 ---
+- name: cobbler | get-rhel-loader | Set vars dependent on target OS
+  include_vars: "{{ ansible_os_family.split(' ')[0] | lower | replace('open','') }}.yml"
+
 - name: cobbler | get-rhel-loader | Install rpm2cpio for debian host
   become: yes
   apt:
@@ -68,18 +71,20 @@
 - name: cobbler | get-rhel-loader | Move loader into cobbler
   become: yes
   command: >
-    mv "{{ uefi_deployer_tmp_dir }}/{{ grubx64_location }}" /srv/tftp/grub
+    mv "{{ uefi_deployer_tmp_dir }}/{{ grubx64_location }}"
+          "{{ cobbler_tftp_dir }}/grub"
 
 - name: cobbler | get-rhel-loader | Move shim into cobbler
   become: yes
   command: >
      mv "{{ uefi_deployer_tmp_dir }}/{{ rhel_shim_location }}"
-           /srv/tftp/grub/shim.efi.signed
+           "{{ cobbler_tftp_dir }}/grub/shim.efi.signed"
+
 
 - name: cobbler | get-rhel-loader | root owns the loader
   become: yes
   file:
-    path: /srv/tftp/grub/grubx64.efi
+    path: "{{ cobbler_tftp_dir }}/grub/grubx64.efi"
     owner: root
     group: root
     mode: 0644
@@ -87,7 +92,7 @@
 - name: cobbler | get-rhel-loader | root owns the shim
   become: yes
   file:
-    path: /srv/tftp/grub/shim.efi.signed
+    path: "{{ cobbler_tftp_dir }}/grub/shim.efi.signed"
     owner: root
     group: root
     mode: 0644

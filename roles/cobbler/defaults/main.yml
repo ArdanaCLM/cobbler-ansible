@@ -1,6 +1,6 @@
 #
 # (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
+# (c) Copyright 2017,2018 SUSE LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -45,16 +45,28 @@ remote_distros:
       managed_by: rhel
     }
 
-rhel_profile_name: 'rhel72'
 
-sles_profile_name: 'sles12sp3'
-
+# RHEL Profile Variables
+rhel_profile_name: 'rhel73'
+current_rhel_version: 'RHEL 7.3'
 rhel_iso_location: "/home/stack/rhel7.iso"
 
+# RHEL UEFI Variables
 grub2_efi_rpm: "grub2-efi-[0-9]*.rpm"
-
 rhel_shim_rpm: "shim-[0-9]*rpm"
 
 grubx64_location: "boot/efi/EFI/redhat/grubx64.efi"
-
 rhel_shim_location: "boot/efi/EFI/redhat/shim.efi"
+
+# SLES Profile Variables
+sles_profile_name: 'sles12sp3'
+current_sles_version: 'SLES 12 SP3'
+sles_iso_location: "/home/stack/sles12sp3.iso"
+
+# SLES UEFI Variables
+sles_grub2_efi_rpm: "grub2-x86_64-efi-[0-9]*.rpm"
+sles_shim_rpm: "shim-[0-9]*rpm"
+
+sles_grubx64_location: "usr/lib/grub2/x86_64-efi/grub.efi"
+sles_regexp_location: "usr/lib/grub2/x86_64-efi/regexp.mod"
+sles_shim_location: "usr/lib64/efi/shim-sles.efi"

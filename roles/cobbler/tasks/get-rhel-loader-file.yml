@@ -1,6 +1,6 @@
 #
 # (c) Copyright 2016 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
+# (c) Copyright 2017,2018 SUSE LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -15,7 +15,8 @@
 # under the License.
 #
 ---
-
+- name: cobbler | create-rhel-loader-file | Set vars dependent on target OS
+  include_vars: "{{ ansible_os_family.split(' ')[0] | lower | replace('open','') }}.yml"
 
 - name: cobbler | get-rhel-loader-file | define grub file to load
   set_fact:
@@ -31,7 +32,7 @@
   become: yes
   copy:
     src: "{{ filepath }}"
-    dest: /srv/tftp/grub/{{ dest_file }}
+    dest: "{{ cobbler_tftp_dir }}/grub/{{ dest_file }}"
     owner: root
     group: root
   when: dest_file is defined

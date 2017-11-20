@@ -1,0 +1,10 @@
+{#
+#
+# (c) Copyright 2017,2018 SUSE LLC
+#
+#}
+set timeout=5
+menuentry 'SLES 12 SP3 Cobbler install' {
+  linuxefi images/{{ sles_profile_name }}-x86_64/linux ifcfg={{ item[0] }}=dhcp install=http://{{ cobbler_server_ip_addr }}:79/cblr/ks_mirror/{{ sles_profile_name }} AutoYaST2=http://{{ cobbler_server_ip_addr }}:79/cblr/svc/op/ks/system/{{ item[1] }}
+  initrdefi images/{{ sles_profile_name }}-x86_64/initrd
+}

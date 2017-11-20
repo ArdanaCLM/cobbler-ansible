@@ -15,24 +15,24 @@
 # under the License.
 #
 ---
-- name: cobbler | create-rhel-grub2 | Set vars dependent on target OS
+- name: cobbler | get-sles-loader-file | Set vars dependent on target OS
   include_vars: "{{ ansible_os_family.split(' ')[0] | lower | replace('open','') }}.yml"
 
-- name: cobbler | create-rhel-grub2 | Derive nodes mac address
-  local_action: bmconfig file={{ baremetal_config }} node={{ item }} field=mac_addr
-  with_items: "{{ node | split(',') }}"
-  register: node_mac
+- name: cobbler | get-sles-loader-file | define grub file to load
+  set_fact:
+    dest_file: grubx64.efi
+  when: filepath | basename == "grubx64.efi"
 
-- set_fact:
-    rhel_node_uefi_mac="{{ node_mac.results|map(attribute='stdout_lines')|list }}"
-- set_fact:
-    rhel_node_uefi_id="{{ bminfo.server_ids | intersect(node) }}"
+- name: cobbler | get-sles-loader-file | define shim file to load
+  set_fact:
+    dest_file: shim.efi.signed
+  when: filepath | basename == "shim.efi"
 
-- name: cobbler | create-rhel-grub2 | Create nodes grub2 files
+- name: cobbler | get-sles-loader-file | Move loader into cobbler
   become: yes
-  template:
-    src: grub2.j2
-    dest: '{{ cobbler_tftp_dir }}/grub/grub.cfg-01-{{ item[0] | replace(":", "-") }}'
-  with_together:
-    - "{{ rhel_node_uefi_mac }}"
-    - "{{ rhel_node_uefi_id }}"
+  copy:
+    src: "{{ filepath }}"
+    dest: "{{ cobbler_tftp_dir }}/grub/{{ dest_file }}"
+    owner: root
+    group: root
+  when: dest_file is defined

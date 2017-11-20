@@ -15,24 +15,24 @@
 # under the License.
 #
 ---
-- name: cobbler | create-rhel-grub2 | Set vars dependent on target OS
+- name: cobbler | create-sles-grub2 | Set vars dependent on target OS
   include_vars: "{{ ansible_os_family.split(' ')[0] | lower | replace('open','') }}.yml"
 
-- name: cobbler | create-rhel-grub2 | Derive nodes mac address
+- name: cobbler | create-sles-grub2 | Derive nodes mac address
   local_action: bmconfig file={{ baremetal_config }} node={{ item }} field=mac_addr
   with_items: "{{ node | split(',') }}"
   register: node_mac
 
 - set_fact:
-    rhel_node_uefi_mac="{{ node_mac.results|map(attribute='stdout_lines')|list }}"
+    sles_node_uefi_mac="{{ node_mac.results|map(attribute='stdout_lines')|list }}"
 - set_fact:
-    rhel_node_uefi_id="{{ bminfo.server_ids | intersect(node) }}"
+    sles_node_uefi_id="{{ bminfo.server_ids | intersect(node) }}"
 
-- name: cobbler | create-rhel-grub2 | Create nodes grub2 files
+- name: cobbler | create-sles-grub2 | Create nodes grub2 files
   become: yes
   template:
-    src: grub2.j2
+    src: sles.grub2.j2
     dest: '{{ cobbler_tftp_dir }}/grub/grub.cfg-01-{{ item[0] | replace(":", "-") }}'
   with_together:
-    - "{{ rhel_node_uefi_mac }}"
-    - "{{ rhel_node_uefi_id }}"
+    - "{{ sles_node_uefi_mac }}"
+    - "{{ sles_node_uefi_id }}"
