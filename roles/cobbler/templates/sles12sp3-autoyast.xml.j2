@@ -117,8 +117,8 @@
       <script>
         <filename>autoyast-init-scripts-0.sh</filename>
         <source><![CDATA[
-            systemctl enable sshd.service
-            systemctl enable kdump rsyslog
+            systemctl enable sshd kdump rsyslog
+            systemctl start sshd
         ]]></source>
       </script>
       <script>
