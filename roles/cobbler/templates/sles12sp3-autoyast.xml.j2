@@ -1,5 +1,6 @@
 {#
 # (c) Copyright 2017 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
 #}
 <?xml version="1.0"?>
 <!DOCTYPE profile>
@@ -165,19 +166,21 @@ rm /tmp/configure_network.sh
   <groups config:type="list">
     <group>
       <groupname>sudo</groupname>
+      <gid>1000</gid>
       <userlist>{{ ardanauser }}</userlist>
     </group>
     <group>
       <groupname>{{ ardanauser }}</groupname>
+      <gid>1001</gid>
       <userlist>{{ ardanauser }}</userlist>
     </group>
   </groups>
   <users config:type="list">
     <user>
       <username>{{ ardanauser }}</username>
+      <gid>1001</gid>
       <user_password>{{ ardanauser_password | password_hash('sha512') }}</user_password><encrypted config:type="boolean">true</encrypted>
       <home>{{ ardanauser_home }}</home>
     </user>
   </users>
 </profile>
-
