@@ -167,6 +167,12 @@
   become: yes
   command: "cp -f /var/lib/cobbler/loaders/shim.efi.signed {{ cobbler_tftp_dir }}/grub"
 
+# in SLES/OpenSUSE, cobbler puts invalid symlink for grub/grub.efi, where we need a hardcopy file
+- name: cobbler | populate | Insert shim.efi.signed file
+  become: yes
+  command: "cp -f --remove-destination {{ cobbler_tftp_dir }}/grub/x86_64-efi/grub.efi {{ cobbler_tftp_dir }}/grub/grub.efi"
+  when: cobbler_is_sles
+
 - name: cobbler | populate | Insert grub.cfg file
   become: yes
   template:

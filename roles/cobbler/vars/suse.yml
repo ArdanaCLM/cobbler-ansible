@@ -42,7 +42,5 @@ cobbler_dhcp_config_file: /etc/dhcpd.conf
 cobbler_bootloader_sources:
   - { src: "/usr/share/syslinux/menu.c32", filename: "menu.c32" }
   - { src: "/usr/share/syslinux/pxelinux.0", filename: "pxelinux.0" }
-#  - { src: "/usr/lib/debian-installer/images/8/amd64/gtk/ldlinux.c32", filename: "ldlinux.c32" }
   - { src: "/usr/lib64/efi/shim.efi", filename: "shim.efi.signed" }
-#  - { src: "/usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed", filename: "grubnetx64.efi.signed" }
 cobbler_tftp_dir: /srv/tftpboot

@@ -81,13 +81,20 @@
     <drive>
       <device>/dev/sda</device>
       <disklabel>gpt</disklabel>
-          <initialize config:type="boolean">true</initialize>
+      <initialize config:type="boolean">true</initialize>
       <partitions config:type="list">
         <partition>
           <create config:type="boolean">true</create>
           <format config:type="boolean">true</format>
           <filesystem config:type="symbol">ext4</filesystem>
           <mount>/boot</mount>
+          <size>250M</size>
+        </partition>
+        <partition>
+          <create config:type="boolean">true</create>
+          <format config:type="boolean">true</format>
+          <filesystem config:type="symbol">vfat</filesystem>
+          <mount>/boot/efi</mount>
           <size>250M</size>
         </partition>
         <partition>
