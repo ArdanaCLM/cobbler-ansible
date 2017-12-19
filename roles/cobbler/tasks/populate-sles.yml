@@ -35,24 +35,48 @@
     group: "root"
     mode: 0644
 
-- name: cobbler | populate-sles | Test for SLES ISO
+- name: cobbler | populate-sles | Test for SLES ISO file in home folder
   stat:
     path: "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}"
     get_checksum: no
     get_md5: no
   register: _deployer_sles12_iso_exists_result
 
+- name: cobbler | populate-sles | Test for SLES ISO mounted at /media/cdrom
+  stat:
+    path: "/media/cdrom/suse"
+    get_checksum: no
+    get_md5: no
+  register: _deployer_sles12_cdrom_exists_result
+
 - name: cobbler | populate-sles | Create temporary mount directory
   become: yes
   command: mktemp -d -p /srv
   register: _mount_tmpdir
-  when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
+  when: (_deployer_sles12_iso_exists_result.stat.exists or
+         _deployer_sles12_cdrom_exists_result.stat.exists) and
+         _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Mount SLES ISO
   become: yes
   command: >
-    mount -o ro,loop "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}" "{{ _mount_tmpdir.stdout }}"
-  when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
+    mount -o ro,loop "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}" \
+        "{{ _mount_tmpdir.stdout }}"
+  when: _deployer_sles12_iso_exists_result.stat.exists
+        and _sles12_profile_exist_result.rc != 0
+
+- name: cobbler | populate-sles | Rsync SLES ISO to temporary folder
+  become: yes
+  synchronize:
+    src: "/media/cdrom/"
+    dest: "{{ _mount_tmpdir.stdout }}/"
+    delete: true
+    times: no
+    rsync_opts:
+      - "--exclude=ardana"
+  when: _deployer_sles12_cdrom_exists_result.stat.exists
+        and not _deployer_sles12_iso_exists_result.stat.exists
+        and _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Cobbler import
   become: yes
@@ -61,17 +85,22 @@
     --path {{ _mount_tmpdir.stdout }}
     --name {{ sles_profile_name }}
     --kickstart /var/lib/cobbler/kickstarts/sles12sp3-autoyast.xml
-  when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
+  when: (_deployer_sles12_iso_exists_result.stat.exists or
+         _deployer_sles12_cdrom_exists_result.stat.exists) and
+         _sles12_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Umount ISO
   become: yes
   command: >
     umount {{ _mount_tmpdir.stdout }}
-  when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
+  when: _deployer_sles12_iso_exists_result.stat.exists
+        and _sles12_profile_exist_result.rc != 0
 
-- name: cobbler | populate-sles | Remove temporary mount directory
+- name: cobbler | populate-sles | Remove temporary directory
   become: yes
   file:
     path: "{{ _mount_tmpdir.stdout }}"
     state: absent
-  when: _deployer_sles12_iso_exists_result.stat.exists and _sles12_profile_exist_result.rc != 0
+  when: (_deployer_sles12_iso_exists_result.stat.exists or
+         _deployer_sles12_cdrom_exists_result.stat.exists) and
+         _sles12_profile_exist_result.rc != 0
