@@ -1,7 +1,7 @@
 {#
 #
 # (c) Copyright 2015 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
+# (c) Copyright 2017,2018 SUSE LLC
 #
 #}
 set default=0
@@ -22,8 +22,8 @@ tr -U -s config $boot_name
 
 legacy_source (tftp)/grub/01-$config
 
-regexp --set=1:m1 --set=2:m2 --set=3:m3 --set=4:m4 --set=5:m5 --set=6:m6
-'^([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})'
+regexp --set=1:m1 --set=2:m2 --set=3:m3 --set=4:m4 --set=5:m5 --set=6:m6 \
+'^([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})\:([0-9a-f]{1,2})' \
  "$net_default_mac"
 
 mac=${m1}-${m2}-${m3}-${m4}-${m5}-${m6}
