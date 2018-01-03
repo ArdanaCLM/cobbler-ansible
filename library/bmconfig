@@ -167,7 +167,7 @@ class BmConfig(object):
             if "persistent_interfaces" not in srv:
                 srv["persistent_interfaces"] = []
             if "distro_id" not in srv:
-                srv["distro_id"] = "hlinux-x86_64"
+                srv["distro_id"] = "sles12sp3-x86_64"
 
     def execute(self):
         self.load_data()
