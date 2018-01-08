@@ -26,7 +26,9 @@ ardanauser_deployer_home: "{{ ansible_env['HOME'] }}"
 
 # The new default is to expect baremetal information inline in servers.yml
 baremetal_config: "{{ playbook_dir }}/../../my_cloud/definition/data/servers.yml"
-baremetal_config_schema: "{{ 'config-processor' | share_dir }}/ardana-config-processor/Data/Site/Schema/2.0/server.yml"
+ansible_setup_bin_dir: "{{ 'ansible'|bin_dir if deployer_media_legacy_layout|bool else '/usr/bin/' }}"
+bm_schema_base_dir: "{{ 'config-processor' | share_dir }}"
+bm_schema_path: "/ardana-config-processor/Data/Site/Schema/2.0/server.yml"
 
 iso_dir: /srv/www/cobbler/iso
 cobbler_root_device: /dev/sda

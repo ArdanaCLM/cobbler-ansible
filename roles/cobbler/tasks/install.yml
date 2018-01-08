@@ -40,8 +40,14 @@
     dest: ~/
     mode: "u=rwx"
 
+- name: cobbler | install | Set bm_schema_{base_dir,path} for nonlegacy layout
+  set_fact:
+      bm_schema_base_dir: "{{ lookup( 'pipe',  ansible_setup_bin_dir ~ '/python -c \"import ardana_configurationprocessor as acp; print(acp.__file__)\"' ) | dirname  }}"
+      bm_schema_path: '/data/Site/Schema/2.0/server.yml'
+  when: deployer_media_legacy_layout|bool == False
+
 - name: cobbler | install | Validate json schema
-  command: ~/validate_yaml {{ baremetal_config_schema }} {{ baremetal_config }}
+  command: ~/validate_yaml {{ bm_schema_base_dir }}{{ bm_schema_path }} {{ baremetal_config }}
 
 - name: cobbler | install | stop tftpd
   become: yes
