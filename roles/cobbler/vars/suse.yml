@@ -33,7 +33,6 @@ cobbler_install_packages:
   - syslinux
   - shim
   - python-jsonschema
-  - fence-agents
   - python-passlib
 
 cobbler_tftp_service_name: tftp

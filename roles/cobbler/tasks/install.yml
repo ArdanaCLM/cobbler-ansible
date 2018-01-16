@@ -94,8 +94,8 @@
 - name: cobbler | install | Create ipmi lanplus power file
   become: yes
   copy:
-    src: fence_ipmilan.template
-    dest: /etc/cobbler/power/fence_ipmilan.template
+    src: fence_ipmitool.template
+    dest: /etc/cobbler/power/fence_ipmitool.template
 
 - name: cobbler | install | Get deployer pub ssh key
   command: cat {{ ardanauser_deployer_home }}/.ssh/id_rsa.pub
