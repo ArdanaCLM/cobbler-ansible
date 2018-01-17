@@ -30,7 +30,9 @@ remote_distros:
       kickstart: hlinux-server-vm.preseed,
       file: "/srv/www/cobbler/ks_mirror/hlinux-{{ hlinux_distro }}",
       initrd: initrd.gz,
-      kernel: linux
+      kernel: linux,
+# keep it blank as 'managed_by' non-empty value has significance
+      managed_by: ''
     }
   - {
       name: sles12sp3,
@@ -42,18 +44,26 @@ remote_distros:
       name: rhel72,
       arch: x86_64,
       kickstart: rhel72-anaconda-ks.cfg,
-      managed_by: rhel
+      managed_by: rhel,
+      entry_name: 'RHEL 7.2',
+      grub2_efi_rpm: "grub2-efi-[0-9]*.rpm",
+      rhel_shim_rpm: "shim-[0-9]*rpm"
+    }
+  - {
+      name: rhel73,
+      arch: x86_64,
+      kickstart: rhel73-anaconda-ks.cfg,
+      managed_by: rhel,
+      entry_name: 'RHEL 7.3',
+# Adding here as rpm lookup pattern needs to be different for RHEL 7.4
+      grub2_efi_rpm: "grub2-efi-[0-9]*.rpm",
+      rhel_shim_rpm: "shim-[0-9]*rpm"
     }
 
+sles_profile_name: 'sles12sp3'
 
-# RHEL Profile Variables
-rhel_profile_name: 'rhel73'
-current_rhel_version: 'RHEL 7.3'
 rhel_iso_location: "/home/stack/rhel7.iso"
 
-# RHEL UEFI Variables
-grub2_efi_rpm: "grub2-efi-[0-9]*.rpm"
-rhel_shim_rpm: "shim-[0-9]*rpm"
 
 grubx64_location: "boot/efi/EFI/redhat/grubx64.efi"
 rhel_shim_location: "boot/efi/EFI/redhat/shim.efi"

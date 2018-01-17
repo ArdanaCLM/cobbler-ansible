@@ -1,4 +1,4 @@
-(c) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
+(c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
 (c) Copyright 2017 SUSE LLC
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -78,7 +78,7 @@ Repo structure:
         │   ├── grub.cfg.j2
         │   ├── hlinux-server-vm.preseed.j2
         │   ├── isc-dhcp-server.j2
-        │   ├── rhel72-anaconda-ks.cfg.j2
+        │   ├── rhel73-anaconda-ks.cfg.j2
         │   └── settings.j2
         └── vars
             └── main.yml

@@ -1,0 +1,97 @@
+#
+# (c) Copyright 2017-2018 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+---
+
+- name: cobbler | populate-rhel-per-profile | Check RHEL Profile
+  become: yes
+  command: >
+    cobbler profile report --name {{ use_rhel_profile }}-x86_64
+  register: _rhel_profile_exist_result
+  failed_when: false
+  changed_when: false
+
+- name: cobbler | populate-rhel-per-profile | Install RHEL kickstarts
+  become: yes
+  template:
+    src: "rhel73-anaconda-ks.cfg.j2"
+    dest: "/var/lib/cobbler/kickstarts/{{ item }}"
+    owner: "root"
+    group: "root"
+    mode: 0644
+  with_items:
+    - "{{ use_rhel_profile }}-anaconda-ks.cfg"
+    - "{{ use_rhel_profile }}-anaconda-ks-multipath.cfg"
+
+- name: cobbler | populate-rhel-per-profile | Customize multipath kickstart
+  become: yes
+  replace:
+    dest: "/var/lib/cobbler/kickstarts/{{ use_rhel_profile }}-anaconda-ks-multipath.cfg"
+    regexp: "{{ cobbler_root_device }}"
+    replace: "{{ boot_from_san_root_device }}"
+
+- name: cobbler | populate-rhel-per-profile | Test for RHEL7 ISO
+  stat:
+    path: "{{ hlmuser_deployer_home }}/{{ deployer_rhel7_iso }}"
+    get_checksum: no
+    get_md5: no
+  register: _deployer_rhel7_iso_exists_result
+
+- name: cobbler | populate-rhel-per-profile | Create temporary mount directory
+  become: yes
+  command: mktemp -d -p /srv
+  register: _mount_tmpdir
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+
+- name: cobbler | populate-rhel-per-profile | Mount RHEL ISO
+  become: yes
+  shell: |
+    mount -o loop "{{ hlmuser_deployer_home }}/{{ deployer_rhel7_iso }}" "{{ _mount_tmpdir.stdout }}"
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+
+- name: cobbler | populate-rhel-per-profile | Cobbler import
+  become: yes
+  shell: >
+    cobbler import
+    --path {{ _mount_tmpdir.stdout }}
+    --name {{ use_rhel_profile }}
+    --kickstart "/var/lib/cobbler/kickstarts/{{ use_rhel_profile }}-anaconda-ks.cfg"
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+
+- name: cobbler | populate-rhel-per-profile | Create multipath profiles
+  become: yes
+  shell: >
+    cobbler profile report --name "{{ item.distro_id }}-{{ item.id }}" ||
+    cobbler profile add
+    --name="{{ item.distro_id }}-{{ item.id }}"
+    --distro="{{ use_rhel_profile }}-x86_64"
+    --kickstart "/var/lib/cobbler/kickstarts/{{ use_rhel_profile }}-anaconda-ks-multipath.cfg"
+  when:
+    "'{{ item.distro_id }}' == '{{ use_rhel_profile }}-x86_64-multipath' and
+    _deployer_rhel7_iso_exists_result.stat.exists"
+  with_items:  bminfo.servers
+
+- name: cobbler | populate-rhel-per-profile | Umount ISO
+  become: yes
+  shell: |
+    umount {{ _mount_tmpdir.stdout }}
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+
+- name: cobbler | populate-rhel-per-profile | Remove temporary mount directory
+  become: yes
+  file:
+    path: "{{ _mount_tmpdir.stdout }}"
+    state: absent
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
