@@ -141,7 +141,7 @@
     --interface={{ item.item.mac_addr | quote }}
     --hostname={{ item.item.id | quote }}
     --netboot-enabled=true
-    --power-type=ipmilan
+    --power-type=ipmitool
     --power-address={{ item.item.ilo_ip | quote }}
     --power-user="redacted"
     --power-pass="redacted"

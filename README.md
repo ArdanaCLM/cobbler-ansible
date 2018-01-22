@@ -54,7 +54,7 @@ Repo structure:
         ├── files
         │   ├── cobbler.conf
         │   ├── configure_network.sh
-        │   ├── fence_ipmilan.template
+        │   ├── fence_ipmitool.template
         │   └── validate_yaml
         ├── tasks
         │   ├── check-ipmi-connectivity.yml
