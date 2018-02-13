@@ -76,14 +76,9 @@
     cobbler_name_server: "{{ cobbler_server_ip_addr }}"
   when: cobbler_name_server is not defined
 
-- name: cobbler | set-vars | Set local hlinux repo ip url
-  set_fact:
-    hlinux_server: "http://{{ cobbler_server_ip_addr }}:{{ hlinux_server_port }}"
-  when: hlinux_server is not defined
-
 - name: cobbler | set-vars | Set local repo ip url
   set_fact:
-    deployer_server: "{{ hlinux_server }}"
+    deployer_server: "http://{{ cobbler_server_ip_addr }}:{{ deployer_server_port }}"
   when: deployer_server is not defined
 
 # Set vars for currently used rhel distro

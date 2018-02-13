@@ -44,8 +44,8 @@ hlinux_server_port: 79
 deployer_server_port: "{{ hlinux_server_port }}"
 hlinux_path: "ardana/hlinux"
 suse_path: "ardana/suse"
-hlinux_url: "{{ hlinux_server }}/{{ hlinux_path }}"
-suse_url: "{{ hlinux_server }}/{{ suse_path }}"
+hlinux_url: "{{ deployer_server }}/{{ hlinux_path }}"
+suse_url: "{{ deployer_server }}/{{ suse_path }}"
 
 dhcp_timeout: 240
 

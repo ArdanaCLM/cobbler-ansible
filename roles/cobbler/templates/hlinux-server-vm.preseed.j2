@@ -1,7 +1,7 @@
 {#
 #
 # (c) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
+# (c) Copyright 2017-2018 SUSE LLC
 #
 #}
 #Necessary to access the remote hlinux repo
@@ -14,7 +14,7 @@ disk-detect disk-detect/multipath/enable boolean true
 
 d-i mirror/protocol string http
 d-i mirror/country string manual
-d-i mirror/http/hostname string {{ hlinux_server | replace('http://', '') }}
+d-i mirror/http/hostname string {{ deployer_server | replace('http://', '') }}
 d-i mirror/http/hostname seen true
 d-i mirror/http/directory string /{{ hlinux_path }}
 d-i mirror/http/directory seen true
