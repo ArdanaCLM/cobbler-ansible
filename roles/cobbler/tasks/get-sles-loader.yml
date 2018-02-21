@@ -34,7 +34,7 @@
     state: mounted
 
 - name: cobbler | get-sles-loader | Create tmp dir on deployer
-  command: mktemp -dt hlm.XXXXXXXX
+  command: mktemp -dt ardana.XXXXXXXX
   register: uefi_deployer_tmp_dir_result
 
 - name: cobbler | get-sles-loader | Define deployer tmp dir fact

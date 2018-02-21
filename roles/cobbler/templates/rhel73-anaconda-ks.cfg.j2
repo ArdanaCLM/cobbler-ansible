@@ -44,7 +44,7 @@ poweroff
 # fcoe --nic=ens1f3 --autovlan
 
 # Root password
-user --groups=wheel --name="{{ hlmuser }}" --password="{{ hlmuser_password | password_hash('sha512') }}" --iscrypted --gecos="{{ hlmuser }}"
+user --groups=wheel --name="{{ ardanauser }}" --password="{{ ardanauser_password | password_hash('sha512') }}" --iscrypted --gecos="{{ ardanauser }}"
 
 # System bootloader configuration
 bootloader --location=mbr --boot-drive={{ cobbler_root_device }}
@@ -61,8 +61,8 @@ clearpart --all --initlabel
 part /boot --fstype="ext3" --ondisk={{ cobbler_root_device }} --size=512
 part /boot/efi --fstype="efi" --ondisk={{ cobbler_root_device }} --size=512
 part pv.275 --fstype="lvmpv" --ondisk={{ cobbler_root_device }} --size=1 --grow
-volgroup hlm-vg --pesize=4096 pv.275
-logvol / --fstype="ext4" --name=root --vgname=hlm-vg --size=32000
+volgroup ardana-vg --pesize=4096 pv.275
+logvol / --fstype="ext4" --name=root --vgname=ardana-vg --size=32000
 
 %packages
 @^minimal
@@ -74,6 +74,7 @@ openssh-server
 rsync
 python
 gdisk
+wget
 
 %end
 
@@ -107,29 +108,29 @@ lvs
 pvs
 lsblk
 
-if vgs | grep -w hlm-vg ; then
+if vgs | grep -w ardana-vg ; then
     # This is an old volume group that we inherited from a previous
     # install of the node. Wipe the filesystems on it and then remove.
     # It's important to remove the filesystems because otherwise they
     # will be rediscovered by lvcreate in osconfig and it'll ask if you
-    # want to keep them - and hang because you can't answer. HLM-3431.
-    vgreduce --debug --yes -ff --removemissing hlm-vg
-    luns="`ls -l /dev/hlm-vg/ | awk 'NR > 1 {print $NF}' | tr '\n' ' '`"
+    # want to keep them - and hang because you can't answer. DEBUG 3431.
+    vgreduce --debug --yes -ff --removemissing ardana-vg
+    luns="`ls -l /dev/ardana-vg/ | awk 'NR > 1 {print $NF}' | tr '\n' ' '`"
     for lun in $luns
     do
-        wipefs -af /dev/hlm-vg/$lun
+        wipefs -af /dev/ardana-vg/$lun
         # belt and braces as wipefs is unreliable. use +e in case the
         # device is so small that we overrun the end.
         set +e
-        dd if=/dev/zero of=/dev/hlm-vg/$lun bs=1048576 count=1000 oflag=direct
-        dsize=`blockdev --getsz /dev/hlm-vg/$lun`
+        dd if=/dev/zero of=/dev/ardana-vg/$lun bs=1048576 count=1000 oflag=direct
+        dsize=`blockdev --getsz /dev/ardana-vg/$lun`
         (( seek_value = dsize*512/1048576 - 1000 ))
-        dd if=/dev/zero of=/dev/hlm-vg/$lun bs=1048576 count=1000 seek=$seek_value oflag=direct
+        dd if=/dev/zero of=/dev/ardana-vg/$lun bs=1048576 count=1000 seek=$seek_value oflag=direct
         set -e
     done
-    devs="`pvs | awk '$2 == \"hlm-vg\" { print $1 }' | tr '\n' ' '`"
-    lvremove --debug --yes -ff hlm-vg
-    vgremove --debug --yes -ff hlm-vg
+    devs="`pvs | awk '$2 == \"ardana-vg\" { print $1 }' | tr '\n' ' '`"
+    lvremove --debug --yes -ff ardana-vg
+    vgremove --debug --yes -ff ardana-vg
     for d in $devs
     do
         pvremove --debug --yes -ff $d
@@ -151,12 +152,12 @@ set -eux
 set -o pipefail
 
 # Allow ssh from deployer
-mkdir --mode=0700 {{ hlmuser_home }}/.ssh
-chown {{ hlmuser }}:{{ hlmuser }} {{ hlmuser_home }}/.ssh
+mkdir --mode=0700 {{ ardanauser_home }}/.ssh
+chown {{ ardanauser }}:{{ ardanauser }} {{ ardanauser_home }}/.ssh
 deployer_ssh_pub_key="{{ deployer_ssh_pub_key }}"
-echo "$deployer_ssh_pub_key" > {{ hlmuser_home }}/.ssh/authorized_keys
-chown {{ hlmuser }}:{{ hlmuser }} {{ hlmuser_home }}/.ssh/authorized_keys
-chmod 0600 {{ hlmuser_home }}/.ssh/authorized_keys
+echo "$deployer_ssh_pub_key" > {{ ardanauser_home }}/.ssh/authorized_keys
+chown {{ ardanauser }}:{{ ardanauser }} {{ ardanauser_home }}/.ssh/authorized_keys
+chmod 0600 {{ ardanauser_home }}/.ssh/authorized_keys
 
 systemctl disable NetworkManager
 
@@ -183,9 +184,9 @@ PREFIX=$ipprefix
 ONBOOT=yes
 EOF
 
-# Enable passwordless sudo access for hlmuser
-echo "{{ hlmuser }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{{ hlmuser }}
-chmod 0440 /etc/sudoers.d/{{ hlmuser }}
+# Enable passwordless sudo access for ardanauser
+echo "{{ ardanauser }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{{ ardanauser }}
+chmod 0440 /etc/sudoers.d/{{ ardanauser }}
 
 {% if disable_pwd_auth == true %}
 sed -i "s/^PasswordAuthentication yes/PasswordAuthentication no/g" /etc/ssh/sshd_config
@@ -208,8 +209,8 @@ rm /etc/resolv.conf
 curl http://$http_server/preseed/bnx2x.conf > /etc/modprobe.d/bnx2x.conf
 chmod 0644 /etc/modprobe.d/bnx2x.conf
 
-# Let HLM know that we completed successfully.
-curl http://$http_server/preseed/timestamp > /etc/cobbler_hlm_installed
+# Let Ardana know that we completed successfully.
+curl http://$http_server/preseed/timestamp > /etc/cobbler_ardana_installed
 
 # Let Cobbler know
 curl http://$http_server/cblr/svc/op/nopxe/system/$name > /dev/null

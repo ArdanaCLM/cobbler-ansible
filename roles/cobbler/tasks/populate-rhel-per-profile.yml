@@ -44,7 +44,7 @@
 
 - name: cobbler | populate-rhel-per-profile | Test for RHEL7 ISO
   stat:
-    path: "{{ hlmuser_deployer_home }}/{{ deployer_rhel7_iso }}"
+    path: "{{ ardanauser_deployer_home }}/{{ deployer_rhel7_iso }}"
     get_checksum: no
     get_md5: no
   register: _deployer_rhel7_iso_exists_result
@@ -58,7 +58,7 @@
 - name: cobbler | populate-rhel-per-profile | Mount RHEL ISO
   become: yes
   shell: |
-    mount -o loop "{{ hlmuser_deployer_home }}/{{ deployer_rhel7_iso }}" "{{ _mount_tmpdir.stdout }}"
+    mount -o loop "{{ ardanauser_deployer_home }}/{{ deployer_rhel7_iso }}" "{{ _mount_tmpdir.stdout }}"
   when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
 
 - name: cobbler | populate-rhel-per-profile | Cobbler import
