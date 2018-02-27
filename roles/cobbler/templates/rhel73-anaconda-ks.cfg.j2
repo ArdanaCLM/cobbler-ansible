@@ -44,7 +44,7 @@ poweroff
 # fcoe --nic=ens1f3 --autovlan
 
 # Root password
-user --groups=wheel --name="{{ ardanauser }}" --password="{{ ardanauser_password | password_hash('sha512') }}" --iscrypted --gecos="{{ ardanauser }}"
+user --groups=wheel --name="{{ ardanauser }}" --password="{{ ardanauser_password | password_hash('sha512') }}" --homedir="{{ ardanauser_home }}" --iscrypted --gecos="{{ ardanauser }}"
 
 # System bootloader configuration
 bootloader --location=mbr --boot-drive={{ cobbler_root_device }}
