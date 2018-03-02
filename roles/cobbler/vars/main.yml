@@ -41,6 +41,7 @@ off_poll_retries: 150
 ssh_wait_seconds: 1500
 
 hlinux_server_port: 79
+deployer_server_port: "{{ hlinux_server_port }}"
 hlinux_path: "ardana/hlinux"
 suse_path: "ardana/suse"
 hlinux_url: "{{ hlinux_server }}/{{ hlinux_path }}"
