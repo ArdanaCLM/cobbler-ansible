@@ -30,6 +30,22 @@
     </signature-handling>
     <storage/>
   </general>
+{% if sles_configured_media_repos | length > 0 %}
+  <add-on>
+    <add_on_products config:type="list">
+{% for m_repo in sles_configured_media_repos %}
+      <listentry>
+        <name>{{ m_repo.name }}</name>
+        <product>{{ m_repo.name }}</product>
+        <media_url>{{ deployer_server }}/SUSE-12-3/{{ ansible_architecture }}/repos/{{ m_repo.alias }}</media_url>
+        <priority>{{ m_repo.priority | default('99', true) | int }}</priority>
+        <ask_on_error config:type="boolean">{{ m_repo.ask_on_error | default('False', true) | bool }}</ask_on_error>
+        <alias>{{ m_repo.alias }}</alias>
+      </listentry>
+{% endfor %}
+    </add_on_products>
+  </add-on>
+{% endif %}
   <software>
     <install_recommended config:type="boolean">false</install_recommended>
     <packages config:type="list">

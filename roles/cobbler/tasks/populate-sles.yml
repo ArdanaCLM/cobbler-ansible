@@ -1,6 +1,6 @@
 #
 # (c) Copyright 2017 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
+# (c) Copyright 2017-2018 SUSE LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -25,6 +25,12 @@
   register: _sles12_profile_exist_result
   failed_when: false
   changed_when: false
+
+- include: check-sles-repos.yml
+  vars:
+    _input_repos_list: "{{ sles_expected_media_repos }}"
+    _input_uri_pattern: "^dir\\:\\/\\/\\/srv\\/www\\/suse-{{ansible_distribution_version}}\\/"
+
 
 - name: cobbler | populate-sles | Install SLES kickstart
   become: yes

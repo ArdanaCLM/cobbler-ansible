@@ -1,0 +1,46 @@
+#
+# (c) Copyright 2018 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+# Task to check whether zypper repos are configured on deployer
+# and repos URI has expected input uri pattern
+# Check is done via using 'alias' attribute in input repos list
+#
+# Pass following variable to include file.
+# vars:
+#    _input_repos_list: "{{ sles_expected_media_repos }}"
+#    _input_uri_pattern: "^dir:\\/\\/\\/srv\\/www\\/suse-12.3\\/"
+#
+
+- name: cobbler | check-sles-repos | Check repos configured on deployer
+  delegate_to: "localhost"
+  become: yes
+  shell: >
+     zypper lr -u | awk '$3 == "{{ item.alias }}" && $15 ~ /{{ _input_uri_pattern}}/ {print $3}'
+  with_items: _input_repos_list
+  register: _repos_found_result
+
+- name: cobbler | check-sles-repos | Create configured repos list
+  set_fact:
+    sles_configured_media_repos: >
+      {%- set _c = [] -%}
+      {%- for _item in _input_repos_list -%}
+      {%-   if _repos_found_result.results | selectattr('stdout', 'equalto', _item.alias) | list | count > 0 -%}
+      {%-     set _ = _c.append(_item) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ _c }}
+  when:
+    - _repos_found_result is defined
+    - _repos_found_result.results | length > 0

@@ -80,3 +80,14 @@ sles_shim_rpm: "shim-[0-9]*rpm"
 sles_grubx64_location: "usr/lib/grub2/x86_64-efi/grub.efi"
 sles_regexp_location: "usr/lib/grub2/x86_64-efi/regexp.mod"
 sles_shim_location: "usr/lib64/efi/shim-sles.efi"
+
+sles_expected_media_repos:
+  - alias: PTF
+    name: PTF
+  - alias: SLES12-SP3-Pool
+    name: SLES12-SP3-Pool
+  - alias: SLES12-SP3-Updates
+    name:  SLES12-SP3-Updates
+
+# Variable to hold list of repos configured on deployer
+sles_configured_media_repos: []
