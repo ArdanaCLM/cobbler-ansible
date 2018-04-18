@@ -83,3 +83,7 @@
 
 # Set vars for currently used rhel distro
 - include: set-rhel-vars.yml
+
+# Set vars for currently used SLES distro
+- include: set-sles-vars.yml
+

@@ -26,12 +26,6 @@
   failed_when: false
   changed_when: false
 
-- include: check-sles-repos.yml
-  vars:
-    _input_repos_list: "{{ sles_expected_media_repos }}"
-    _input_uri_pattern: "^dir\\:\\/\\/\\/srv\\/www\\/suse-{{ansible_distribution_version}}\\/"
-
-
 - name: cobbler | populate-sles | Install SLES kickstart
   become: yes
   template:
