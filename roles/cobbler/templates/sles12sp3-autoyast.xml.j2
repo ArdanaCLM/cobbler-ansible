@@ -148,6 +148,11 @@
       <script>
         <filename>autoyast-init-scripts-1.sh</filename>
         <source><![CDATA[
+# check network
+IP=`echo "$http_server" | sed 's/:.*//'`
+COUNTER=60
+until ping -c1 "$IP" 2>&1 >/dev/null || [ $COUNTER -lt 1 ]; do sleep 1; let COUNTER-=1; done
+
 # set flag
 wget http://$http_server/preseed/timestamp -O /etc/cobbler_ardana_installed
 
