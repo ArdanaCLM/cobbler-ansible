@@ -169,8 +169,10 @@ sed -r -i "s,^(Defaults\s+\!visiblepw),# \0," /etc/sudoers
 # all devices are marked as UP but have only the one configured by cobbler has an ip.
 # So we have to do things slightly differently here.
 ip addr
-intf=`ip addr | awk '/scope global/ { print $NF }'`
-cidr=`ip addr | awk '/scope global/ { print $2 }'`
+intf=`ip addr | grep -v inet6 | awk '/scope global/ { print $NF }'`
+cidr=`ip addr | grep -v inet6 | awk '/scope global/ { print $2 }'`
+intf=`echo ${intf} | cut -d' ' -f1`
+cidr=`echo ${cidr} | cut -d' ' -f1`
 ipaddr=`echo $cidr | awk -F/ '{ print $1 }'`
 ipprefix=`echo $cidr | awk -F/ '{ print $2 }'`
 gateway=`ip route | awk '/default/ { print $3 }'`
