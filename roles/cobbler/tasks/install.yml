@@ -97,6 +97,30 @@
     line: 'DHCPD_INTERFACE="{{ cobbler_server_interface }}"'
   when: cobbler_is_sles
 
+- name: cobbler | install | Create dhcpd.service.d systemd path
+  become: yes
+  file:
+    path: /etc/systemd/system/dhcpd.service.d
+    state: directory
+    mode: 0755
+  when: cobbler_is_sles
+
+- name: cobbler  | install | Create dhcpd.service.d/start-limit.conf
+  become: yes
+  template:
+    src: dhcpd-start-limit.conf.j2
+    dest: /etc/systemd/system/dhcpd.service.d/start-limit.conf
+    mode: 0644
+  register: _dhcpd_conf_result
+  when: cobbler_is_sles
+
+- name: cobbler | install | Reload systemd for dhcpd.service extension
+  become: yes
+  command: systemctl daemon-reload
+  when:
+    cobbler_is_sles and
+    _dhcpd_conf_result | changed
+
 - name: cobbler | install | Create ipmi lanplus power file
   become: yes
   copy:

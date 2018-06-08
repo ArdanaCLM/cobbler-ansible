@@ -91,3 +91,6 @@ sles_expected_media_repos:
 
 # Variable to hold list of repos configured on deployer
 sles_configured_media_repos: []
+
+sles_dhcpd_start_limit_interval: 30
+sles_dhcpd_start_limit_burst: 25

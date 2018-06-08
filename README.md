@@ -75,6 +75,7 @@ Repo structure:
         ├── templates
         │   ├── cobbler.dhcp.template.j2
         │   ├── dhcpd.conf.j2
+        │   ├── dhcpd-start-limit.conf.j2
         │   ├── grub.cfg.j2
         │   ├── hlinux-server-vm.preseed.j2
         │   ├── isc-dhcp-server.j2
