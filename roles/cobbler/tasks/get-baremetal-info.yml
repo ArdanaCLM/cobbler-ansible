@@ -1,6 +1,6 @@
 #
 # (c) Copyright 2015-2016 Hewlett Packard Enterprise Development LP
-# (c) Copyright 2017 SUSE LLC
+# (c) Copyright 2017,2018 SUSE LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -25,3 +25,12 @@
 
 - name: cobbler | get-baremetal-info | Get baremetal info
   local_action: bmconfig file={{ baremetal_config }}
+- name: cobbler | check-ipmi-credentials-provided | Check at least one server has ipmi credentials
+  fail:
+    msg: >
+      There were no servers found with ipmi credentials defined.
+      If you want to use cobbler to deploy servers,
+      you must include proper ipmi credentials for each server
+      you want to deploy with cobbler.
+  when: bminfo.servers | length == 0
+
