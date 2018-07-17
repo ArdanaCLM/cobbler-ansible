@@ -34,6 +34,7 @@ cobbler_install_packages:
   - shim
   - python-jsonschema
   - python-passlib
+  - python-pexpect
 
 cobbler_tftp_service_name: tftp
 cobbler_dhcp_package_name: dhcp-server

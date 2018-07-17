@@ -57,9 +57,9 @@ import yaml
 
 # Load the local module
 import imp
-hosencrypt = imp.load_source('hosencrypt', './hosencrypt.py')
+ardanaencrypt = imp.load_source('ardanaencrypt', './ardanaencrypt.py')
 
-openssl_prefix = hosencrypt.openssl.prefix
+openssl_prefix = ardanaencrypt.openssl.prefix
 
 def decrypt(value):
     if value.startswith(openssl_prefix):
