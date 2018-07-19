@@ -23,16 +23,9 @@
   with_items: "{{ node | split(',') }}"
   register: node_mac
 
-- set_fact:
-    rhel_node_uefi_mac="{{ node_mac.results|map(attribute='stdout_lines')|list }}"
-- set_fact:
-    rhel_node_uefi_id="{{ bminfo.server_ids | intersect(node) }}"
-
 - name: cobbler | create-rhel-grub2 | Create nodes grub2 files
   become: yes
   template:
     src: grub2.j2
-    dest: '{{ cobbler_tftp_dir }}/grub/grub.cfg-01-{{ item[0] | replace(":", "-") }}'
-  with_together:
-    - "{{ rhel_node_uefi_mac }}"
-    - "{{ rhel_node_uefi_id }}"
+    dest: '{{ cobbler_tftp_dir }}/grub/grub.cfg-01-{{ item.stdout | lower }}'
+  with_items: "{{ node_mac.results }}"

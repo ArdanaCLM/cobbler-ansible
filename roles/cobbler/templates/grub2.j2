@@ -6,6 +6,6 @@
 #}
 set timeout=5
 menuentry '{{ rhel_entry_name }} Cobbler install' {
-  linuxefi images/{{ rhel_profile_name }}-x86_64/vmlinuz interface={{ item[0] }} inst.ks=http://{{ cobbler_server_ip_addr }}:79/cblr/svc/op/ks/system/{{ item[1] }} inst.repo=http://{{ cobbler_server_ip_addr }}:79/cblr/ks_mirror/{{ rhel_profile_name }} inst.ks.sendmac inst.text ip=dhcp ksdevice=bootif lang=
+  linuxefi images/{{ rhel_profile_name }}-x86_64/vmlinuz interface={{ item.stdout }} inst.ks=http://{{ cobbler_server_ip_addr }}:79/cblr/svc/op/ks/system/{{ item.item }} inst.repo=http://{{ cobbler_server_ip_addr }}:79/cblr/ks_mirror/{{ rhel_profile_name }} inst.ks.sendmac inst.text ip=dhcp ksdevice=bootif lang=
   initrdefi images/{{ rhel_profile_name }}-x86_64/initrd.img
 }
