@@ -23,16 +23,9 @@
   with_items: "{{ node | split(',') }}"
   register: node_mac
 
-- set_fact:
-    sles_node_uefi_mac="{{ node_mac.results|map(attribute='stdout_lines')|list }}"
-- set_fact:
-    sles_node_uefi_id="{{ bminfo.server_ids | intersect(node) }}"
-
 - name: cobbler | create-sles-grub2 | Create nodes grub2 files
   become: yes
   template:
     src: sles.grub2.j2
-    dest: '{{ cobbler_tftp_dir }}/grub/grub.cfg-01-{{ item[0] | lower }}'
-  with_together:
-    - "{{ sles_node_uefi_mac }}"
-    - "{{ sles_node_uefi_id }}"
+    dest: '{{ cobbler_tftp_dir }}/grub/grub.cfg-01-{{ item.stdout | lower }}'
+  with_items: "{{ node_mac.results }}"
