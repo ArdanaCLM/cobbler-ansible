@@ -18,6 +18,6 @@
 # Set vars for SUSE repos
 - include: check-sles-repos.yml
   vars:
-    _input_repos_list: "{{ sles_expected_media_repos }}"
+    _input_repos_list: "{{ sles_expected_media_repos[sles_version_name] }}"
     _input_uri_pattern: "^dir\\:\\/\\/\\/srv\\/www\\/suse-{{ansible_distribution_version}}\\/"
 

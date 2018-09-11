@@ -16,54 +16,52 @@
 #
 ---
 
-- include_vars: ../../deployer-setup/defaults/ardana_tar_locations.yml
-
 - name: cobbler | populate-sles | Check SLES Profile
   become: yes
   command: >
-    cobbler profile report --name="{{ sles_profile_name }}-x86_64"
-  register: _sles12_profile_exist_result
+    cobbler profile report --name="{{ sles_version_name }}-x86_64"
+  register: _sles_profile_exist_result
   failed_when: false
   changed_when: false
 
 - name: cobbler | populate-sles | Install SLES kickstart
   become: yes
   template:
-    src: "sles12sp3-autoyast.xml.j2"
-    dest: "/var/lib/cobbler/kickstarts/sles12sp3-autoyast.xml"
+    src: "{{ sles_version_name }}-autoyast.xml.j2"
+    dest: "/var/lib/cobbler/kickstarts/{{ sles_version_name }}-autoyast.xml"
     owner: "root"
     group: "root"
     mode: 0644
 
 - name: cobbler | populate-sles | Test for SLES ISO file in home folder
   stat:
-    path: "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}"
+    path: "{{ sles_iso_location }}"
     get_checksum: no
     get_md5: no
-  register: _deployer_sles12_iso_exists_result
+  register: _deployer_sles_iso_exists_result
 
 - name: cobbler | populate-sles | Test for SLES ISO mounted at /media/cdrom
   stat:
     path: "/media/cdrom/suse"
     get_checksum: no
     get_md5: no
-  register: _deployer_sles12_cdrom_exists_result
+  register: _deployer_sles_cdrom_exists_result
 
 - name: cobbler | populate-sles | Create temporary mount directory
   become: yes
   command: mktemp -d -p /srv
   register: _mount_tmpdir
-  when: (_deployer_sles12_iso_exists_result.stat.exists or
-         _deployer_sles12_cdrom_exists_result.stat.exists) and
-         _sles12_profile_exist_result.rc != 0
+  when: (_deployer_sles_iso_exists_result.stat.exists or
+         _deployer_sles_cdrom_exists_result.stat.exists) and
+         _sles_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Mount SLES ISO
   become: yes
   command: >
-    mount -o ro,loop "{{ ardanauser_deployer_home }}/{{ deployer_sles12_iso }}" \
+    mount -o ro,loop "{{ sles_iso_location }}" \
         "{{ _mount_tmpdir.stdout }}"
-  when: _deployer_sles12_iso_exists_result.stat.exists
-        and _sles12_profile_exist_result.rc != 0
+  when: _deployer_sles_iso_exists_result.stat.exists
+        and _sles_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Rsync SLES ISO to temporary folder
   become: yes
@@ -74,33 +72,33 @@
     times: no
     rsync_opts:
       - "--exclude=ardana"
-  when: _deployer_sles12_cdrom_exists_result.stat.exists
-        and not _deployer_sles12_iso_exists_result.stat.exists
-        and _sles12_profile_exist_result.rc != 0
+  when: _deployer_sles_cdrom_exists_result.stat.exists
+        and not _deployer_sles_iso_exists_result.stat.exists
+        and _sles_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Cobbler import
   become: yes
   command: >
     cobbler import
     --path {{ _mount_tmpdir.stdout }}
-    --name {{ sles_profile_name }}
-    --kickstart /var/lib/cobbler/kickstarts/sles12sp3-autoyast.xml
-  when: (_deployer_sles12_iso_exists_result.stat.exists or
-         _deployer_sles12_cdrom_exists_result.stat.exists) and
-         _sles12_profile_exist_result.rc != 0
+    --name {{ sles_version_name }}
+    --kickstart /var/lib/cobbler/kickstarts/{{ sles_version_name }}-autoyast.xml
+  when: (_deployer_sles_iso_exists_result.stat.exists or
+         _deployer_sles_cdrom_exists_result.stat.exists) and
+         _sles_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Umount ISO
   become: yes
   command: >
     umount {{ _mount_tmpdir.stdout }}
-  when: _deployer_sles12_iso_exists_result.stat.exists
-        and _sles12_profile_exist_result.rc != 0
+  when: _deployer_sles_iso_exists_result.stat.exists
+        and _sles_profile_exist_result.rc != 0
 
 - name: cobbler | populate-sles | Remove temporary directory
   become: yes
   file:
     path: "{{ _mount_tmpdir.stdout }}"
     state: absent
-  when: (_deployer_sles12_iso_exists_result.stat.exists or
-         _deployer_sles12_cdrom_exists_result.stat.exists) and
-         _sles12_profile_exist_result.rc != 0
+  when: (_deployer_sles_iso_exists_result.stat.exists or
+         _deployer_sles_cdrom_exists_result.stat.exists) and
+         _sles_profile_exist_result.rc != 0

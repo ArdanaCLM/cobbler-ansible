@@ -24,7 +24,7 @@
 # Run once, we don't even care on what node; the result will be the same.
 
 - name: cobbler | get-baremetal-info | Get baremetal info
-  local_action: bmconfig file={{ baremetal_config }}
+  local_action: bmconfig file={{ baremetal_config }} default_distro_id={{ sles_version_name }}-x86_64
 - name: cobbler | check-ipmi-credentials-provided | Check at least one server has ipmi credentials
   fail:
     msg: >

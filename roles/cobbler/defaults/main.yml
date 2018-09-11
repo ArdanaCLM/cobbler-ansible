@@ -20,58 +20,40 @@
 hlinux_distro: "cattleprod"
 
 remote_distros:
-  - {
-      name: hlinux,
-      arch: x86_64,
-      breed: debian,
-      distro: cattleprod,
-      url: "{{ hlinux_url }}",
-      url_boot_path: main/installer-amd64/current/images/netboot/debian-installer/amd64,
-      kickstart: hlinux-server-vm.preseed,
-      file: "/srv/www/cobbler/ks_mirror/hlinux-{{ hlinux_distro }}",
-      initrd: initrd.gz,
-      kernel: linux,
-# keep it blank as 'managed_by' non-empty value has significance
-      managed_by: ''
-    }
-  - {
-      name: sles12sp3,
-      arch: x86_64,
-      kickstart: sles12sp3-autoyast.xml,
-      managed_by: sles
-    }
-  - {
-      name: rhel72,
-      arch: x86_64,
-      kickstart: rhel72-anaconda-ks.cfg,
-      managed_by: rhel,
-      entry_name: 'RHEL 7.2',
-      grub2_efi_rpm: "grub2-efi-[0-9]*.rpm",
-      rhel_shim_rpm: "shim-[0-9]*rpm"
-    }
-  - {
-      name: rhel73,
-      arch: x86_64,
-      kickstart: rhel73-anaconda-ks.cfg,
-      managed_by: rhel,
-      entry_name: 'RHEL 7.3',
+  - name: sles12sp4
+    arch: x86_64
+    kickstart: sles12sp4-autoyast.xml
+    managed_by: sles
+  - name: sles12sp3
+    arch: x86_64
+    kickstart: sles12sp3-autoyast.xml
+    managed_by: sles
+  - name: rhel72
+    arch: x86_6,
+    kickstart: rhel72-anaconda-ks.cfg
+    managed_by: rhel
+    entry_name: 'RHEL 7.2'
+    grub2_efi_rpm: "grub2-efi-[0-9]*.rpm"
+    rhel_shim_rpm: "shim-[0-9]*rpm"
+  - name: rhel73
+    arch: x86_64
+    kickstart: rhel73-anaconda-ks.cfg
+    managed_by: rhel
+    entry_name: 'RHEL 7.3'
 # Adding here as rpm lookup pattern needs to be different for RHEL 7.4
-      grub2_efi_rpm: "grub2-efi-[0-9]*.rpm",
-      rhel_shim_rpm: "shim-[0-9]*rpm"
-    }
+    grub2_efi_rpm: "grub2-efi-[0-9]*.rpm"
+    rhel_shim_rpm: "shim-[0-9]*rpm"
 
-sles_profile_name: 'sles12sp3'
 
-rhel_iso_location: "/home/stack/rhel7.iso"
+rhel_iso_location: "{{ ardanauser_deployer_home }}/rhel7.iso"
 
 
 grubx64_location: "boot/efi/EFI/redhat/grubx64.efi"
 rhel_shim_location: "boot/efi/EFI/redhat/shim.efi"
 
 # SLES Profile Variables
-sles_profile_name: 'sles12sp3'
-current_sles_version: 'SLES 12 SP3'
-sles_iso_location: "/home/stack/sles12sp3.iso"
+sles_version_name: "sles12sp4"
+sles_iso_location: "{{ ardanauser_deployer_home }}/{{ sles_version_name }}.iso"
 
 # SLES UEFI Variables
 sles_grub2_efi_rpm: "grub2-x86_64-efi-[0-9]*.rpm"
@@ -82,15 +64,25 @@ sles_regexp_location: "usr/lib/grub2/x86_64-efi/regexp.mod"
 sles_shim_location: "usr/lib64/efi/shim-sles.efi"
 
 sles_expected_media_repos:
-  - alias: PTF
-    name: PTF
-  - alias: SLES12-SP3-Pool
-    name: SLES12-SP3-Pool
-  - alias: SLES12-SP3-Updates
-    name:  SLES12-SP3-Updates
+  sles12sp4:
+    - alias: PTF
+      name: PTF
+    - alias: SLES12-SP4-Pool
+      name: SLES12-SP4-Pool
+    - alias: SLES12-SP4-Updates
+      name:  SLES12-SP4-Updates
+  sles12sp3:
+    - alias: PTF
+      name: PTF
+    - alias: SLES12-SP3-Pool
+      name: SLES12-SP3-Pool
+    - alias: SLES12-SP3-Updates
+      name:  SLES12-SP3-Updates
 
 # Variable to hold list of repos configured on deployer
-sles_configured_media_repos: []
+sles_configured_media_repos:
+  sles12sp4: []
+  sles12sp3: []
 
 sles_dhcpd_start_limit_interval: 30
 sles_dhcpd_start_limit_burst: 25

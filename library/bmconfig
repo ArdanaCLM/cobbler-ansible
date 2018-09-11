@@ -72,6 +72,7 @@ class BmConfig(object):
             self.fname = module.params["file"]
             self.field = module.params["field"]
             self.node = module.params["node"]
+            self.default_distro_id = module.params["default_distro_id"]
         except ValueError as e:
             self.fail(msg="%s: bad value %s" % (self.name, str(e)))
 
@@ -167,7 +168,7 @@ class BmConfig(object):
             if "persistent_interfaces" not in srv:
                 srv["persistent_interfaces"] = []
             if "distro_id" not in srv:
-                srv["distro_id"] = "sles12sp3-x86_64"
+                srv["distro_id"] = self.default_distro_id
 
     def execute(self):
         self.load_data()
@@ -185,7 +186,8 @@ def main():
         argument_spec=dict(
             file=dict(required=True),
             field=dict(required=False),
-            node=dict(required=False)
+            node=dict(required=False),
+            default_distro_id=dict(required=False)
         )
     )
 
