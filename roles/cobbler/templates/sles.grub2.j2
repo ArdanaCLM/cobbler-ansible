@@ -4,7 +4,7 @@
 #
 #}
 set timeout=5
-menuentry 'SLES 12 SP3 Cobbler install' {
+menuentry 'SLES 12 SP4 Cobbler install' {
   linuxefi images/{{ sles_version_name }}-x86_64/linux ifcfg={{ item.stdout }}=dhcp install=http://{{ cobbler_server_ip_addr }}:79/cblr/ks_mirror/{{ sles_version_name }} AutoYaST2=http://{{ cobbler_server_ip_addr }}:79/cblr/svc/op/ks/system/{{ item.item }}
   initrdefi images/{{ sles_version_name }}-x86_64/initrd
 }
