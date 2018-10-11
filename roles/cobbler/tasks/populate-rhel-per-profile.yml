@@ -26,7 +26,7 @@
 - name: cobbler | populate-rhel-per-profile | Install RHEL kickstarts
   become: yes
   template:
-    src: "rhel73-anaconda-ks.cfg.j2"
+    src: "{{ use_rhel_profile }}-anaconda-ks.cfg.j2"
     dest: "/var/lib/cobbler/kickstarts/{{ item }}"
     owner: "root"
     group: "root"

@@ -1,0 +1,223 @@
+#
+# (c) Copyright 2015-2017 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017-2018 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+#
+#version=DEVEL
+# System authorization information
+auth --enableshadow --passalgo=sha512
+repo --name="Server-HighAvailability" --baseurl=file:///run/install/repo/addons/HighAvailability
+repo --name="Server-ResilientStorage" --baseurl=file:///run/install/repo/addons/ResilientStorage
+
+url --url=$tree
+
+# Run the Setup Agent on first boot
+firstboot --enable
+
+# Keyboard layouts
+keyboard --vckeymap=us --xlayouts='us'
+# System language
+lang en_US.utf8
+# System timezone
+timezone Etc/UTC --isUtc --nontp
+
+# Misc
+firewall --disabled
+
+poweroff
+
+# Network information
+# Qlogic-FCOE: Uncomment the below lines if using qlogic fcoe boot from san
+# Modify the interface names (ens1f2, ens1f3) if appropriate
+# fcoe --nic=ens1f2 --autovlan
+# fcoe --nic=ens1f3 --autovlan
+
+# Root password
+user --groups=wheel --name="{{ ardanauser }}" --password="{{ ardanauser_password | password_hash('sha512') }}" --homedir="{{ ardanauser_home }}" --iscrypted --gecos="{{ ardanauser }}"
+
+# System bootloader configuration
+bootloader --location=mbr --boot-drive={{ cobbler_root_device }}
+zerombr
+
+# TODO: Target only cobbler_root_device not all disks.
+# ignoredisk --only-use={{ cobbler_root_device }}
+
+# Blow away without prejudice what was there previously - same as we do on hLinux
+clearpart --all --initlabel
+
+# Disk partitioning information
+#part biosboot --fstype="biosboot" --size=1
+part /boot --fstype="ext3" --ondisk={{ cobbler_root_device }} --size=512
+part /boot/efi --fstype="efi" --ondisk={{ cobbler_root_device }} --size=512
+part pv.275 --fstype="lvmpv" --ondisk={{ cobbler_root_device }} --size=1 --grow
+volgroup ardana-vg --pesize=4096 pv.275
+logvol / --fstype="ext4" --name=root --vgname=ardana-vg --size=32000
+
+%packages
+@^minimal
+@core
+kexec-tools
+dbus
+eject
+openssh-server
+rsync
+python
+gdisk
+wget
+
+%end
+
+%pre --log=/var/log/anaconda-pre.log --erroronfail
+# Qlogic-FCOE: Uncomment the below lines if using qlogic fcoe boot from san
+# Modify the interface names (ens1f2, ens1f3) if appropriate
+# cat /proc/partitions
+# ip link set ens1f2 up
+# ip link set ens1f3 up
+# modprobe 8021q
+# modprobe fcoe
+# fipvlan -c -s ens1f2
+# fipvlan -c -s ens1f3
+# cat /proc/partitions
+# sleep 240
+# cat /proc/partitions
+
+set -eux
+set -o pipefail
+
+date
+df -h
+cat /proc/partitions
+if which multipath ; then
+    multipath -ll
+fi
+
+# record the "before" picture in the log file.
+vgs
+lvs
+pvs
+lsblk
+
+if vgs | grep -w ardana-vg ; then
+    # This is an old volume group that we inherited from a previous
+    # install of the node. Wipe the filesystems on it and then remove.
+    # It's important to remove the filesystems because otherwise they
+    # will be rediscovered by lvcreate in osconfig and it'll ask if you
+    # want to keep them - and hang because you can't answer. DEBUG 3431.
+    vgreduce --debug --yes -ff --removemissing ardana-vg
+    luns="`ls -l /dev/ardana-vg/ | awk 'NR > 1 {print $NF}' | tr '\n' ' '`"
+    for lun in $luns
+    do
+        wipefs -af /dev/ardana-vg/$lun
+        # belt and braces as wipefs is unreliable. use +e in case the
+        # device is so small that we overrun the end.
+        set +e
+        dd if=/dev/zero of=/dev/ardana-vg/$lun bs=1048576 count=1000 oflag=direct
+        dsize=`blockdev --getsz /dev/ardana-vg/$lun`
+        (( seek_value = dsize*512/1048576 - 1000 ))
+        dd if=/dev/zero of=/dev/ardana-vg/$lun bs=1048576 count=1000 seek=$seek_value oflag=direct
+        set -e
+    done
+    devs="`pvs | awk '$2 == \"ardana-vg\" { print $1 }' | tr '\n' ' '`"
+    lvremove --debug --yes -ff ardana-vg
+    vgremove --debug --yes -ff ardana-vg
+    for d in $devs
+    do
+        pvremove --debug --yes -ff $d
+    done
+    # record the "after" picture in the log file.
+    vgs
+    lvs
+    pvs
+    lsblk
+fi
+date
+%end
+
+# Instead of this we use the ip addr script below
+# network --device=eth2 --bootproto=static --ip=192.168.10.8 --netmask=255.255.255.0
+
+%post --log=/var/log/anaconda-post.log --erroronfail
+set -eux
+set -o pipefail
+
+# Allow ssh from deployer
+mkdir --mode=0700 {{ ardanauser_home }}/.ssh
+chown {{ ardanauser }}:{{ ardanauser }} {{ ardanauser_home }}/.ssh
+deployer_ssh_pub_key="{{ deployer_ssh_pub_key }}"
+echo "$deployer_ssh_pub_key" > {{ ardanauser_home }}/.ssh/authorized_keys
+chown {{ ardanauser }}:{{ ardanauser }} {{ ardanauser_home }}/.ssh/authorized_keys
+chmod 0600 {{ ardanauser_home }}/.ssh/authorized_keys
+
+systemctl disable NetworkManager
+
+# Configure sudo to not require tty
+sed -r -i "s,^(Defaults\s+requiretty),# \0," /etc/sudoers
+sed -r -i "s,^(Defaults\s+\!visiblepw),# \0," /etc/sudoers
+
+# In a nutshell we copy this from configure_network.sh.j2 but during RHEL kickstart
+# all devices are marked as UP but have only the one configured by cobbler has an ip.
+# So we have to do things slightly differently here.
+ip addr
+intf=`ip addr | grep -v inet6 | awk '/scope global/ { print $NF }'`
+cidr=`ip addr | grep -v inet6 | awk '/scope global/ { print $2 }'`
+intf=`echo ${intf} | cut -d' ' -f1`
+cidr=`echo ${cidr} | cut -d' ' -f1`
+ipaddr=`echo $cidr | awk -F/ '{ print $1 }'`
+ipprefix=`echo $cidr | awk -F/ '{ print $2 }'`
+gateway=`ip route | awk '/default/ { print $3 }'`
+cat <<EOF | tee /etc/sysconfig/network-scripts/ifcfg-$intf
+# Kickstart $intf initialization
+TYPE=Ethernet
+DEVICE=$intf
+BOOTPROTO=none
+IPADDR=$ipaddr
+PREFIX=$ipprefix
+ONBOOT=yes
+EOF
+
+# Enable passwordless sudo access for ardanauser
+echo "{{ ardanauser }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/{{ ardanauser }}
+chmod 0440 /etc/sudoers.d/{{ ardanauser }}
+
+{% if disable_pwd_auth == true %}
+sed -i "s/^PasswordAuthentication yes/PasswordAuthentication no/g" /etc/ssh/sshd_config
+{% endif %}
+
+if [ -e /etc/yum/pluginconf.d/subscription-manager.conf ] ; then
+    sed -i "s/enabled=1/enabled=0/g" /etc/yum/pluginconf.d/subscription-manager.conf
+fi
+
+# remove external yum repo definitions, if any
+rm -f /etc/yum.repos.d/*.repo
+
+$yum_config_stanza
+
+# Anaconda will have configured the node to use the deployer as a gateway
+# which is wrong. A correct version will be written later, in osconfig.
+rm /etc/resolv.conf
+
+# Configure bnx2x driver module options
+curl http://$http_server/preseed/bnx2x.conf > /etc/modprobe.d/bnx2x.conf
+chmod 0644 /etc/modprobe.d/bnx2x.conf
+
+# Let Ardana know that we completed successfully.
+curl http://$http_server/preseed/timestamp > /etc/cobbler_ardana_installed
+
+# Let Cobbler know
+curl http://$http_server/cblr/svc/op/nopxe/system/$name > /dev/null
+%end
+
+%addon com_redhat_kdump --enable --reserve-mb='auto'
+
+%end
