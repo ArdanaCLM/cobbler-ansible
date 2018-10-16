@@ -68,9 +68,8 @@ remote_distros:
       rhel_shim_rpm: "shim-x64-[0-9]*rpm"
     }
 
-sles_profile_name: 'sles12sp3'
 
-rhel_iso_location: "/home/stack/rhel7.iso"
+rhel_iso_location: "{{ ardanauser_deployer_home }}/rhel7.iso"
 
 
 grubx64_location: "boot/efi/EFI/redhat/grubx64.efi"
@@ -79,7 +78,7 @@ rhel_shim_location: "boot/efi/EFI/redhat/shim.efi"
 # SLES Profile Variables
 sles_profile_name: 'sles12sp3'
 current_sles_version: 'SLES 12 SP3'
-sles_iso_location: "/home/stack/sles12sp3.iso"
+sles_iso_location: "{{ ardanauser_deployer_home }}/{{ sles_profile_name }}.iso"
 
 # SLES UEFI Variables
 sles_grub2_efi_rpm: "grub2-x86_64-efi-[0-9]*.rpm"
