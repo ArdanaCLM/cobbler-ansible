@@ -72,8 +72,8 @@ remote_distros:
 rhel_iso_location: "{{ ardanauser_deployer_home }}/rhel7.iso"
 
 
-grubx64_location: "boot/efi/EFI/redhat/grubx64.efi"
-rhel_shim_location: "boot/efi/EFI/redhat/shim.efi"
+grubx64_location: "boot/efi/EFI/*/grubx64.efi"
+rhel_shim_location: "boot/efi/EFI/*/shim.efi"
 
 # SLES Profile Variables
 sles_profile_name: 'sles12sp3'

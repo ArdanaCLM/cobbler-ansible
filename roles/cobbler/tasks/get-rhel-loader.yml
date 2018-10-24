@@ -70,14 +70,14 @@
 
 - name: cobbler | get-rhel-loader | Move loader into cobbler
   become: yes
-  command: >
-    mv "{{ uefi_deployer_tmp_dir }}/{{ grubx64_location }}"
+  shell: >
+    mv {{ uefi_deployer_tmp_dir }}/{{ grubx64_location }} \
           "{{ cobbler_tftp_dir }}/grub"
 
 - name: cobbler | get-rhel-loader | Move shim into cobbler
   become: yes
-  command: >
-     mv "{{ uefi_deployer_tmp_dir }}/{{ rhel_shim_location }}"
+  shell: >
+     mv {{ uefi_deployer_tmp_dir }}/{{ rhel_shim_location }} \
            "{{ cobbler_tftp_dir }}/grub/shim.efi.signed"
 
 
