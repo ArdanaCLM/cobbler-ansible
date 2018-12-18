@@ -26,7 +26,7 @@ ardanauser_deployer_home: "{{ ansible_env['HOME'] }}"
 
 # The new default is to expect baremetal information inline in servers.yml
 baremetal_config: "{{ playbook_dir }}/../../my_cloud/definition/data/servers.yml"
-ansible_setup_bin_dir: "{{ 'ansible'|bin_dir if deployer_media_legacy_layout|bool else '/usr/bin/' }}"
+ansible_setup_bin_dir: "/usr/bin/"
 bm_schema_base_dir: "{{ 'config-processor' | share_dir }}"
 bm_schema_path: "/ardana-config-processor/Data/Site/Schema/2.0/server.yml"
 
