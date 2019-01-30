@@ -18,6 +18,8 @@
 # You should not need to run this manually!
 ---
 
+- include: ardana-ssh-keyscan.yml
+
 - hosts: resources
   roles:
     - cobbler
