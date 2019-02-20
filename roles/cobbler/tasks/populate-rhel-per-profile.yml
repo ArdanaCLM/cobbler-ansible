@@ -15,11 +15,11 @@
 #
 ---
 
-- name: cobbler | populate-rhel-per-profile | Check RHEL Profile
+- name: cobbler | populate-rhel-per-profile | Check RHEL Distro
   become: yes
   command: >
-    cobbler profile report --name {{ use_rhel_profile }}-x86_64
-  register: _rhel_profile_exist_result
+    cobbler distro report --name {{ use_rhel_profile }}-x86_64
+  register: _rhel_distro_exist_result
   failed_when: false
   changed_when: false
 
@@ -53,13 +53,13 @@
   become: yes
   command: mktemp -d -p /srv
   register: _mount_tmpdir
-  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_distro_exist_result.rc != 0
 
 - name: cobbler | populate-rhel-per-profile | Mount RHEL ISO
   become: yes
   shell: |
     mount -o loop "{{ ardanauser_deployer_home }}/{{ deployer_rhel7_iso }}" "{{ _mount_tmpdir.stdout }}"
-  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_distro_exist_result.rc != 0
 
 - name: cobbler | populate-rhel-per-profile | Cobbler import
   become: yes
@@ -68,7 +68,7 @@
     --path {{ _mount_tmpdir.stdout }}
     --name {{ use_rhel_profile }}
     --kickstart "/var/lib/cobbler/kickstarts/{{ use_rhel_profile }}-anaconda-ks.cfg"
-  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_distro_exist_result.rc != 0
 
 - name: cobbler | populate-rhel-per-profile | Create multipath profiles
   become: yes
@@ -87,11 +87,11 @@
   become: yes
   shell: |
     umount {{ _mount_tmpdir.stdout }}
-  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_distro_exist_result.rc != 0
 
 - name: cobbler | populate-rhel-per-profile | Remove temporary mount directory
   become: yes
   file:
     path: "{{ _mount_tmpdir.stdout }}"
     state: absent
-  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_profile_exist_result.rc != 0
+  when: _deployer_rhel7_iso_exists_result.stat.exists and _rhel_distro_exist_result.rc != 0
