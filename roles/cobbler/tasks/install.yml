@@ -34,6 +34,11 @@
     state: present
   with_items: cobbler_install_packages
 
+- name: cobbler | install | Comment contents of default log rotation script
+  become: yes
+  shell: sed -i -e 's/^/#/' $(grep -lv "#" /etc/logrotate.d/cobbler)
+  failed_when: false
+
 - name: cobbler | install | Create validate json script
   copy:
     src: validate_yaml
