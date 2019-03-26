@@ -129,23 +129,21 @@
     - proxy_http
     - access_compat
 
-- name: cobbler | configure | Check SLES Profile
-  become: yes
-  command: >
-    cobbler profile report --name {{ sles_version_name }}-x86_64
-  register: _sles_profile_exist_result
-  failed_when: false
-  changed_when: false
+- name: cobbler | configure | Check SLES distro exists?
+  include: check-distro-exists.yml
+  vars:
+    check_distro: "{{ sles_version_name }}-x86_64"
+    check_delay: 5
 
 - name: cobbler | configure | Locate distro_signatures.json files
   set_fact:
      distro_signatures_files:
        - /etc/cobbler/distro_signatures.json
        - /var/lib/cobbler/distro_signatures.json
-  when: _sles_profile_exist_result.rc != 0
+  when: cobbler_distro_exists_result.rc != 0
 
 - name: cobbler | configure | Fix line endings in distro_signatures.json files
   become: yes
   replace: dest="{{ item }}" regexp="\\r"
   with_items: distro_signatures_files
-  when: _sles_profile_exist_result.rc != 0
+  when: cobbler_distro_exists_result.rc != 0

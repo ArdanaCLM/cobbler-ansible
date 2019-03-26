@@ -17,12 +17,9 @@
 ---
 
 - name: cobbler | populate-sles | Check SLES Distro
-  become: yes
-  command: >
-    cobbler distro report --name="{{ sles_version_name }}-x86_64"
-  register: _sles_distro_exist_result
-  failed_when: false
-  changed_when: false
+  include: check-distro-exists.yml
+  vars:
+    check_distro: "{{ sles_version_name }}-x86_64"
 
 - name: cobbler | populate-sles | Install SLES kickstart (autoyast)
   become: yes
@@ -53,7 +50,7 @@
   register: _mount_tmpdir
   when: (_deployer_sles_iso_exists_result.stat.exists or
          _deployer_sles_cdrom_exists_result.stat.exists) and
-         _sles_distro_exist_result.rc != 0
+         cobbler_distro_exists_result.rc != 0
 
 - name: cobbler | populate-sles | Mount SLES ISO
   become: yes
@@ -61,7 +58,7 @@
     mount -o ro,loop "{{ sles_iso_location }}" \
         "{{ _mount_tmpdir.stdout }}"
   when: _deployer_sles_iso_exists_result.stat.exists
-        and _sles_distro_exist_result.rc != 0
+        and cobbler_distro_exists_result.rc != 0
 
 - name: cobbler | populate-sles | Rsync SLES ISO to temporary folder
   become: yes
@@ -74,7 +71,7 @@
       - "--exclude=ardana"
   when: _deployer_sles_cdrom_exists_result.stat.exists
         and not _deployer_sles_iso_exists_result.stat.exists
-        and _sles_distro_exist_result.rc != 0
+        and cobbler_distro_exists_result.rc != 0
 
 - name: cobbler | populate-sles | Cobbler import
   become: yes
@@ -85,14 +82,14 @@
     --kickstart /var/lib/cobbler/kickstarts/{{ sles_version_name }}-autoyast.xml
   when: (_deployer_sles_iso_exists_result.stat.exists or
          _deployer_sles_cdrom_exists_result.stat.exists) and
-         _sles_distro_exist_result.rc != 0
+         cobbler_distro_exists_result.rc != 0
 
 - name: cobbler | populate-sles | Umount ISO
   become: yes
   command: >
     umount {{ _mount_tmpdir.stdout }}
   when: _deployer_sles_iso_exists_result.stat.exists
-        and _sles_distro_exist_result.rc != 0
+        and cobbler_distro_exists_result.rc != 0
 
 - name: cobbler | populate-sles | Remove temporary directory
   become: yes
@@ -101,4 +98,4 @@
     state: absent
   when: (_deployer_sles_iso_exists_result.stat.exists or
          _deployer_sles_cdrom_exists_result.stat.exists) and
-         _sles_distro_exist_result.rc != 0
+         cobbler_distro_exists_result.rc != 0
