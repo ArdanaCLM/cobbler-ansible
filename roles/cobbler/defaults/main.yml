@@ -28,21 +28,6 @@ remote_distros:
     arch: x86_64
     kickstart: sles12sp3-autoyast.xml
     managed_by: sles
-  - name: rhel72
-    arch: x86_6
-    kickstart: rhel72-anaconda-ks.cfg
-    managed_by: rhel
-    entry_name: 'RHEL 7.2'
-    grub2_efi_rpm: "grub2-efi-[0-9]*.rpm"
-    rhel_shim_rpm: "shim-[0-9]*rpm"
-  - name: rhel73
-    arch: x86_64
-    kickstart: rhel73-anaconda-ks.cfg
-    managed_by: rhel
-    entry_name: 'RHEL 7.3'
-# Adding here as rpm lookup pattern needs to be different for RHEL 7.4
-    grub2_efi_rpm: "grub2-efi-[0-9]*.rpm"
-    rhel_shim_rpm: "shim-[0-9]*rpm"
   - name: rhel75
     arch: x86_64
     kickstart: rhel75-anaconda-ks.cfg
