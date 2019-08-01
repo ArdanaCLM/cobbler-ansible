@@ -42,6 +42,7 @@ EXAMPLES = '''
 - bmconfig: file={{ baremetal_config }} field=role node=ccn-0001
 '''
 
+from netaddr import  IPNetwork
 import yaml
 
 
@@ -73,6 +74,9 @@ class BmConfig(object):
             self.field = module.params["field"]
             self.node = module.params["node"]
             self.default_distro_id = module.params["default_distro_id"]
+            self.data = None
+            self.network = None
+            self.localips = None
         except ValueError as e:
             self.fail(msg="%s: bad value %s" % (self.name, str(e)))
 
@@ -109,18 +113,12 @@ class BmConfig(object):
         if 'cidr' in self.network:
             if 'subnet' in self.network or 'netmask' in self.network:
                 raise KeyError('cannot specify both cidr and subnet/netmask')
-            self.network['subnet'], width = self.network['cidr'].split('/')
-            shift = 32 - int(width)
-            mask = 0xffffffff >> shift << shift
-            self.network['netmask'] = "%d.%d.%d.%d" % \
-                ((mask & 0xff000000) >> 24,
-                 (mask & 0x00ff0000) >> 16,
-                 (mask & 0x0000ff00) >> 8,
-                  mask & 0x000000ff)
+            ip = IPNetwork(self.network['cidr'])
+            self.network['subnet'] = str(ip.network)
+            self.network['netmask'] = str(ip.netmask)
         else:
-            binstr = "".join(["{0:08b}".format(int(x)) for x in self.network['netmask'].split('.')])
-            width = len(binstr.rstrip('0'))
-            self.network['cidr'] = "%s/%s" % (self.network['subnet'], width)
+            ip = IPNetwork('/'.join([self.network['subnet'], self.network['netmask']]))
+            self.network['cidr']= str(ip.cidr)
         cmd = ['/bin/bash', '-c', 'ip a | awk \'/inet / {sub("/.*","",$2) ; print $2}\'']
         rc, out, err = self.execv(cmd, check_rc=True)
         self.localips = out.strip().split('\n')

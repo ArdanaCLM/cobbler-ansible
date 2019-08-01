@@ -40,15 +40,20 @@
   when: cobbler_cidr is not defined
 
 - name: cobbler | set-vars | List available nics
-  local_action: shell ip a | awk '/^[0-9]/ { sub(":","",$2) ; iface=$2 } $1 == "inet" {print iface, $2 }'
+  local_action: shell ip a | awk '/^[0-9]/ { sub(":","",$2) ; iface=$2 } $1 == "inet"  || $1 == "inet6" {print iface, $2 }'
   register: _candidates
   when: cobbler_server_interface is not defined
   changed_when: false
+  run_once: True
 
-- name: cobbler | set-vars | Search for an interface on this cidr
-  match-cidr: cidr="{{ cobbler_cidr }}" ips="{{ _candidates.stdout }}"
+- name: cobbler | set-vars | Search for an ip interface on this cidr
+  delegate_to: localhost
+  netaddr-match-cidr:
+    cidr: "{{ cobbler_cidr }}"
+    ips: "{{ _candidates.stdout }}"
   register: _selected
   when: cobbler_server_interface is not defined
+  run_once: True
 
 # We want this in the log for debug purposes, in case it's wrong and needs manual override.
 - debug: var=_selected
@@ -58,11 +63,13 @@
   set_fact:
     cobbler_server_interface: "{{ _selected.stdout }}"
   when: cobbler_server_interface is not defined
+  run_once: True
 
 - name: cobbler | set-vars | Select ip address
   set_fact:
     cobbler_server_ip_addr: "{{ _selected.ip }}"
   when: cobbler_server_ip_addr is not defined
+  run_once: True
 
 # An override gateway  for CI
 - name: cobbler | set-vars | Set baremetal network gateway
@@ -78,7 +85,7 @@
 
 - name: cobbler | set-vars | Set local repo ip url
   set_fact:
-    deployer_server: "http://{{ cobbler_server_ip_addr }}:{{ deployer_server_port }}"
+    deployer_server: "http://{{ cobbler_server_ip_addr | ipwrap }}:{{ deployer_server_port }}"
   when: deployer_server is not defined
 
 # Set vars for currently used rhel distro

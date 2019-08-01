@@ -1,0 +1,110 @@
+#!/usr/bin/env python
+#
+# (c) Copyright 2015 Hewlett Packard Enterprise Development LP
+# (c) Copyright 2017 SUSE LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may
+# not use this file except in compliance with the License. You may obtain
+# a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations
+# under the License.
+
+DOCUMENTATION = '''
+---
+module: netaddr-match-cidr
+author: Adolfo Duarte
+short_description: Find a nic matching the given search creteria
+description:
+    - Searches the output of "ip a" for nics matching the given search criteria
+    - returns a dictionary containing:
+      return_dict.ip=nicip
+      return_dict.output=nicname
+      return_dict.cidr=cidr
+      return_dict.subnet=hex(cidr_subnet)
+      return_dict.mask=hex(cidr_mask)
+options:
+    cidr:
+        required: true
+        description:
+            - CIDR to be used for search. Format "x/y"
+    ips:
+        required: true
+        description:
+            - List of candidate interfaces and ips, newline separated.
+'''
+
+EXAMPLES = '''
+- matchcidr: cidr="10.1.11.0/24" ips="eth0 10.1.11.56/24\neth1 192.168.24.54/16\n"
+- matchcidr: cidr="ffff:0001::0/64" ips="eth0 ffff:0001::1/64\neth1 ffff:0002::1/64\n
+'''
+
+from netaddr import IPNetwork
+
+class NetaddrMatchCidr(object):
+    name = 'matchcidr'
+
+    def __init__(self, module):
+        self.module = module
+        self.niccidrcombos = module.params['ips'].split('\n')
+        self.ipnetwork = IPNetwork(module.params['cidr'])
+
+    def fail(self, **kwargs):
+        return self.module.fail_json(**kwargs)
+
+    def succeed(self, **kwargs):
+        return self.module.exit_json(**kwargs)
+
+    def execute(self):
+        try:
+            # We want to look through all the nic/cidr combos
+            # and find a matching nic.
+            # if more than one nic match, then we return error
+            result = None
+            for candidate in self.niccidrcombos:
+                nic, niccidr = candidate.split(' ')
+                nicipnetwork = IPNetwork(niccidr)
+                if nicipnetwork.cidr == self.ipnetwork.cidr:
+                    if result:
+                        # we fail if more than one nic is found to match cidr
+                        if result['stdout'] == nic:
+                            continue
+                        self.fail(msg='%s: multiple nics matching %s\n%s' % (
+                            self.name, self.ipnetwork.cidr,
+                            self.niccidrcombos))
+                    result = dict(stdout=str(nic),
+                                  ip=str(nicipnetwork.ip),
+                                  cidr=str(self.ipnetwork.cidr),
+                                  subnet=hex(self.ipnetwork.network),
+                                  mask=hex(self.ipnetwork.netmask))
+            if result:
+                self.succeed(**result)
+            else:
+                self.fail(msg='%s: no nic matching %s\n%s' % (
+                    self.name,
+                    self.ipnetwork.cidr,
+                    self.niccidrcombos)
+                          )
+        except Exception as e:
+            self.fail(msg='%s: %s %s' % (self.name, str(type(e)), str(e)))
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            cidr=dict(required=True),
+            ips=dict(required=True)
+        )
+    )
+
+    mod = NetaddrMatchCidr(module)
+    return mod.execute()
+
+
+from ansible.module_utils.basic import *
+main()
