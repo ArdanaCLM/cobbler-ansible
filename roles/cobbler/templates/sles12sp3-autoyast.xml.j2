@@ -94,7 +94,7 @@
   </networking>
   <partitioning config:type="list">
     <drive>
-      <device>/dev/sda</device>
+      <device>{{ cobbler_root_device }}</device>
       <disklabel>gpt</disklabel>
       <initialize config:type="boolean">true</initialize>
       <partitions config:type="list">
