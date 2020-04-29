@@ -32,6 +32,7 @@
   tasks:
     - include: roles/cobbler/tasks/set-vars.yml
     - include: roles/cobbler/tasks/install.yml
+    - include: roles/cobbler/tasks/update-signatures.yml
     - include: roles/cobbler/tasks/configure.yml
     - include: roles/cobbler/tasks/start.yml
     - include: roles/cobbler/tasks/get-baremetal-info.yml

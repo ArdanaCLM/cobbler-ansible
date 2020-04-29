@@ -134,16 +134,3 @@
   vars:
     check_distro: "{{ sles_version_name }}-x86_64"
     check_delay: 5
-
-- name: cobbler | configure | Locate distro_signatures.json files
-  set_fact:
-     distro_signatures_files:
-       - /etc/cobbler/distro_signatures.json
-       - /var/lib/cobbler/distro_signatures.json
-  when: cobbler_distro_exists_result.rc != 0
-
-- name: cobbler | configure | Fix line endings in distro_signatures.json files
-  become: yes
-  replace: dest="{{ item }}" regexp="\\r"
-  with_items: distro_signatures_files
-  when: cobbler_distro_exists_result.rc != 0

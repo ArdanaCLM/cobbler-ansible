@@ -92,3 +92,7 @@ sles_configured_media_repos:
 
 sles_dhcpd_start_limit_interval: 30
 sles_dhcpd_start_limit_burst: 25
+
+distro_signatures_files:
+  - /etc/cobbler/distro_signatures.json
+  - /var/lib/cobbler/distro_signatures.json
