@@ -47,7 +47,7 @@
 
 - name: cobbler | install | Set bm_schema_{base_dir,path} for nonlegacy layout
   set_fact:
-      bm_schema_base_dir: "{{ lookup( 'pipe',  ansible_setup_bin_dir ~ '/python -c \"import ardana_configurationprocessor as acp; print(acp.__file__)\"' ) | dirname  }}"
+      bm_schema_base_dir: "{{ lookup( 'pipe', '/usr/bin/python -c \"import ardana_configurationprocessor as acp; print(acp.__file__)\"' | quote) | quote | dirname  }}"
       bm_schema_path: '/data/Site/Schema/2.0/server.yml'
 
 - name: cobbler | install | Validate json schema
